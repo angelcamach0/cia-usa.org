@@ -92,12 +92,12 @@ export default {
         pointer-events: none;
         z-index: 0;
       }
-      .bg-text span {
-        display: inline-block;
+      .bg-text-inner {
+        display: inline-flex;
+        align-items: center;
         transform-origin: center;
       }
-      .bg-text span::after {
-        content: "█";
+      .bg-cursor {
         margin-left: 0.2em;
         color: rgba(0, 255, 122, 0.12);
         animation: cursor-blink 1.2s steps(1, end) infinite;
@@ -156,14 +156,20 @@ export default {
     <canvas id="matrix"></canvas>
     <canvas id="sentinels"></canvas>
     <canvas id="rabbit"></canvas>
-    <div class="bg-text"><span data-text="angelcamach0"></span></div>
+    <div class="bg-text">
+      <span class="bg-text-inner">
+        <span class="bg-name" data-text="angelcamach0"></span>
+        <span class="bg-cursor">█</span>
+      </span>
+    </div>
     <div class="overlay"></div>
     <div class="glitch-layer"></div>
     <div class="badge">cloudflare worker</div>
     <script>
       const canvas = document.getElementById("matrix");
       const ctx = canvas.getContext("2d");
-      const bgSpan = document.querySelector(".bg-text span");
+      const bgTextInner = document.querySelector(".bg-text-inner");
+      const bgName = document.querySelector(".bg-name");
       const sentinelsCanvas = document.getElementById("sentinels");
       const sentinelsCtx = sentinelsCanvas.getContext("2d");
       const rabbitCanvas = document.getElementById("rabbit");
@@ -212,24 +218,26 @@ export default {
       }
 
       function fitBgText() {
-        if (!bgSpan) return;
-        bgSpan.style.transform = "scale(1)";
-        const rect = bgSpan.getBoundingClientRect();
+        if (!bgTextInner) return;
+        bgTextInner.style.transform = "scale(1)";
+        const rect = bgTextInner.getBoundingClientRect();
+        const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+        const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
         const isMobile = window.matchMedia("(max-width: 720px), (max-height: 520px)").matches;
-        const maxW = window.innerWidth * (isMobile ? 0.9 : 0.95);
-        const maxH = window.innerHeight * (isMobile ? 0.16 : 0.22);
+        const maxW = vw * (isMobile ? 0.9 : 0.95);
+        const maxH = vh * (isMobile ? 0.16 : 0.24);
         const scale = Math.min(maxW / rect.width, maxH / rect.height, 1);
-        bgSpan.style.transform = "scale(" + scale.toFixed(3) + ")";
+        bgTextInner.style.transform = "scale(" + scale.toFixed(3) + ")";
       }
 
       function typeBgText() {
-        if (!bgSpan) return;
-        const target = bgSpan.getAttribute("data-text") || "";
-        bgSpan.textContent = "";
+        if (!bgName) return;
+        const target = bgName.getAttribute("data-text") || "";
+        bgName.textContent = "";
         let index = 0;
         const typeNext = () => {
           if (index < target.length) {
-            bgSpan.textContent += target[index];
+            bgName.textContent += target[index];
             index += 1;
             fitBgText();
             setTimeout(typeNext, 110);
@@ -243,7 +251,7 @@ export default {
           let remaining = deleteCount;
           const deleteNext = () => {
             if (remaining > 0) {
-              bgSpan.textContent = bgSpan.textContent.slice(0, -1);
+              bgName.textContent = bgName.textContent.slice(0, -1);
               remaining -= 1;
               fitBgText();
               setTimeout(deleteNext, 70);
@@ -254,9 +262,9 @@ export default {
           deleteNext();
         };
         const retypeNext = () => {
-          if (bgSpan.textContent.length < target.length) {
-            const nextChar = target[bgSpan.textContent.length];
-            bgSpan.textContent += nextChar;
+          if (bgName.textContent.length < target.length) {
+            const nextChar = target[bgName.textContent.length];
+            bgName.textContent += nextChar;
             fitBgText();
             setTimeout(retypeNext, 110);
             return;
@@ -536,6 +544,10 @@ export default {
         rabbitCtx.setTransform(1, 0, 0, 1, 0, 0);
         resize();
       });
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", fitBgText);
+        window.visualViewport.addEventListener("scroll", fitBgText);
+      }
 
       resize();
       typeBgText();
