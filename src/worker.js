@@ -37,6 +37,11 @@ export default {
         height: 100vh;
         filter: blur(0.2px);
       }
+      #sentinels {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
       #rabbit {
         position: fixed;
         inset: 0;
@@ -78,19 +83,35 @@ export default {
         display: grid;
         place-items: center;
         font-family: "Impact", "Haettenschweiler", "Arial Black", sans-serif;
-        font-size: clamp(64px, 18vw, 220px);
-        letter-spacing: 0.12em;
+        font-size: 200px;
+        letter-spacing: clamp(0.04em, 0.5vw, 0.1em);
+        white-space: nowrap;
         color: rgba(0, 255, 122, 0.08);
         text-transform: lowercase;
         text-shadow: 0 0 30px rgba(0, 255, 122, 0.12);
         pointer-events: none;
         z-index: 0;
       }
+      .bg-text span {
+        display: inline-block;
+        transform-origin: center;
+      }
+      .bg-text span::after {
+        content: "█";
+        margin-left: 0.2em;
+        color: rgba(0, 255, 122, 0.12);
+        animation: cursor-blink 1.2s steps(1, end) infinite;
+      }
+      @keyframes cursor-blink {
+        0%, 50% { opacity: 1; }
+        51%, 100% { opacity: 0; }
+      }
       canvas { z-index: 1; }
-      #rabbit { z-index: 2; }
-      .overlay { z-index: 3; }
-      .glitch-layer { z-index: 4; }
-      .badge { z-index: 5; }
+      #sentinels { z-index: 2; }
+      #rabbit { z-index: 3; }
+      .overlay { z-index: 4; }
+      .glitch-layer { z-index: 5; }
+      .badge { z-index: 6; }
       body.glitch canvas {
         filter: sepia(1) saturate(5) hue-rotate(-35deg);
       }
@@ -133,14 +154,18 @@ export default {
   </head>
   <body>
     <canvas id="matrix"></canvas>
+    <canvas id="sentinels"></canvas>
     <canvas id="rabbit"></canvas>
-    <div class="bg-text">angelcamach0</div>
+    <div class="bg-text"><span>angelcamach0</span></div>
     <div class="overlay"></div>
     <div class="glitch-layer"></div>
     <div class="badge">cloudflare worker</div>
     <script>
       const canvas = document.getElementById("matrix");
       const ctx = canvas.getContext("2d");
+      const bgSpan = document.querySelector(".bg-text span");
+      const sentinelsCanvas = document.getElementById("sentinels");
+      const sentinelsCtx = sentinelsCanvas.getContext("2d");
       const rabbitCanvas = document.getElementById("rabbit");
       const rabbitCtx = rabbitCanvas.getContext("2d");
       const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*";
@@ -173,13 +198,28 @@ export default {
       function resize() {
         width = canvas.width = window.innerWidth * devicePixelRatio;
         height = canvas.height = window.innerHeight * devicePixelRatio;
+        sentinelsCanvas.width = window.innerWidth * devicePixelRatio;
+        sentinelsCanvas.height = window.innerHeight * devicePixelRatio;
         rabbitCanvas.width = window.innerWidth * devicePixelRatio;
         rabbitCanvas.height = window.innerHeight * devicePixelRatio;
         ctx.scale(devicePixelRatio, devicePixelRatio);
+        sentinelsCtx.scale(devicePixelRatio, devicePixelRatio);
         rabbitCtx.scale(devicePixelRatio, devicePixelRatio);
         columns = Math.floor(window.innerWidth / 14);
         drops = Array.from({ length: columns }, () => Math.random() * window.innerHeight);
         rabbit.y = window.innerHeight - 40;
+        fitBgText();
+      }
+
+      function fitBgText() {
+        if (!bgSpan) return;
+        bgSpan.style.transform = "scale(1)";
+        const rect = bgSpan.getBoundingClientRect();
+        const isMobile = window.matchMedia("(max-width: 720px), (max-height: 520px)").matches;
+        const maxW = window.innerWidth * (isMobile ? 0.9 : 0.95);
+        const maxH = window.innerHeight * (isMobile ? 0.16 : 0.22);
+        const scale = Math.min(maxW / rect.width, maxH / rect.height, 1);
+        bgSpan.style.transform = "scale(" + scale.toFixed(3) + ")";
       }
 
       function drawTrail() {
@@ -214,6 +254,7 @@ export default {
       }
 
       function drawSentinels(now) {
+        sentinelsCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
         const maxSentinels = 8;
         if (now - lastSpawn > 900 && sentinels.length < maxSentinels) {
           lastSpawn = now;
@@ -266,46 +307,46 @@ export default {
             "00111100",
             "00011000"
           ];
-          ctx.fillStyle = "rgba(0, 255, 122, 0.18)";
-          ctx.shadowColor = "rgba(0, 255, 122, 0.5)";
-          ctx.shadowBlur = 10;
+          sentinelsCtx.fillStyle = "rgba(0, 255, 122, 0.18)";
+          sentinelsCtx.shadowColor = "rgba(0, 255, 122, 0.5)";
+          sentinelsCtx.shadowBlur = 10;
           for (let y = 0; y < pattern.length; y++) {
             for (let x = 0; x < pattern[y].length; x++) {
               if (pattern[y][x] === "1") {
-                ctx.fillRect(px + x * unit, py + y * unit, unit, unit);
+                sentinelsCtx.fillRect(px + x * unit, py + y * unit, unit, unit);
               }
             }
           }
           // Tentacles trailing behind the sentinel.
-          ctx.shadowBlur = 6;
-          ctx.strokeStyle = "rgba(0, 255, 122, 0.22)";
-          ctx.lineWidth = Math.max(1, unit / 2);
+          sentinelsCtx.shadowBlur = 6;
+          sentinelsCtx.strokeStyle = "rgba(0, 255, 122, 0.22)";
+          sentinelsCtx.lineWidth = Math.max(1, unit / 2);
           const tailDir = s.vx > 0 ? -1 : 1;
           for (let t = 0; t < 5; t++) {
             const startX = px + (pattern[0].length * unit) / 2 + t * unit * 0.6;
             const startY = py + pattern.length * unit - unit;
-            ctx.beginPath();
-            ctx.moveTo(startX, startY);
+            sentinelsCtx.beginPath();
+            sentinelsCtx.moveTo(startX, startY);
             let cx = startX;
             let cy = startY;
             for (let seg = 0; seg < 6; seg++) {
               cx += tailDir * (2 + seg) * unit * 0.7;
               cy += (Math.sin(s.wobble + seg * 0.7 + t) * unit) + unit * 0.6;
-              ctx.lineTo(cx, cy);
+              sentinelsCtx.lineTo(cx, cy);
             }
-            ctx.stroke();
+            sentinelsCtx.stroke();
           }
           if (s.maxHp > 1) {
             const barW = s.w;
             const barH = Math.max(2, unit / 2);
             const barX = px;
             const barY = py - barH - 3;
-            ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-            ctx.fillRect(barX, barY, barW, barH);
-            ctx.fillStyle = "rgba(0, 255, 122, 0.7)";
-            ctx.fillRect(barX, barY, barW * (s.hp / s.maxHp), barH);
+            sentinelsCtx.fillStyle = "rgba(0, 0, 0, 0.5)";
+            sentinelsCtx.fillRect(barX, barY, barW, barH);
+            sentinelsCtx.fillStyle = "rgba(0, 255, 122, 0.7)";
+            sentinelsCtx.fillRect(barX, barY, barW * (s.hp / s.maxHp), barH);
           }
-          ctx.shadowBlur = 0;
+          sentinelsCtx.shadowBlur = 0;
         }
       }
 
@@ -447,6 +488,7 @@ export default {
 
       window.addEventListener("resize", () => {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
+        sentinelsCtx.setTransform(1, 0, 0, 1, 0, 0);
         rabbitCtx.setTransform(1, 0, 0, 1, 0, 0);
         resize();
       });
