@@ -156,7 +156,7 @@ export default {
     <canvas id="matrix"></canvas>
     <canvas id="sentinels"></canvas>
     <canvas id="rabbit"></canvas>
-    <div class="bg-text"><span>angelcamach0</span></div>
+    <div class="bg-text"><span data-text="angelcamach0"></span></div>
     <div class="overlay"></div>
     <div class="glitch-layer"></div>
     <div class="badge">cloudflare worker</div>
@@ -220,6 +220,50 @@ export default {
         const maxH = window.innerHeight * (isMobile ? 0.16 : 0.22);
         const scale = Math.min(maxW / rect.width, maxH / rect.height, 1);
         bgSpan.style.transform = "scale(" + scale.toFixed(3) + ")";
+      }
+
+      function typeBgText() {
+        if (!bgSpan) return;
+        const target = bgSpan.getAttribute("data-text") || "";
+        bgSpan.textContent = "";
+        let index = 0;
+        const typeNext = () => {
+          if (index < target.length) {
+            bgSpan.textContent += target[index];
+            index += 1;
+            fitBgText();
+            setTimeout(typeNext, 110);
+            return;
+          }
+          fitBgText();
+          setTimeout(jitterDelete, 3000 + Math.random() * 2000);
+        };
+        const jitterDelete = () => {
+          const deleteCount = Math.max(1, Math.floor(Math.random() * target.length * 0.6));
+          let remaining = deleteCount;
+          const deleteNext = () => {
+            if (remaining > 0) {
+              bgSpan.textContent = bgSpan.textContent.slice(0, -1);
+              remaining -= 1;
+              fitBgText();
+              setTimeout(deleteNext, 70);
+              return;
+            }
+            setTimeout(retypeNext, 200);
+          };
+          deleteNext();
+        };
+        const retypeNext = () => {
+          if (bgSpan.textContent.length < target.length) {
+            const nextChar = target[bgSpan.textContent.length];
+            bgSpan.textContent += nextChar;
+            fitBgText();
+            setTimeout(retypeNext, 110);
+            return;
+          }
+          setTimeout(jitterDelete, 2500 + Math.random() * 2500);
+        };
+        setTimeout(typeNext, 400);
       }
 
       function drawTrail() {
@@ -494,6 +538,7 @@ export default {
       });
 
       resize();
+      typeBgText();
       draw();
     </script>
   </body>
