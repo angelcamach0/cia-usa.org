@@ -83,7 +83,7 @@ export default {
         display: grid;
         place-items: center;
         font-family: "Impact", "Haettenschweiler", "Arial Black", sans-serif;
-        font-size: 200px;
+        font-size: var(--bg-font-size, 200px);
         letter-spacing: clamp(0.04em, 0.5vw, 0.1em);
         white-space: nowrap;
         color: rgba(0, 255, 122, 0.08);
@@ -95,7 +95,6 @@ export default {
       .bg-text-inner {
         display: inline-flex;
         align-items: center;
-        transform-origin: center;
       }
       .bg-cursor {
         margin-left: 0.2em;
@@ -168,6 +167,7 @@ export default {
     <script>
       const canvas = document.getElementById("matrix");
       const ctx = canvas.getContext("2d");
+      const bgText = document.querySelector(".bg-text");
       const bgTextInner = document.querySelector(".bg-text-inner");
       const bgName = document.querySelector(".bg-name");
       const sentinelsCanvas = document.getElementById("sentinels");
@@ -218,16 +218,17 @@ export default {
       }
 
       function fitBgText() {
-        if (!bgTextInner) return;
-        bgTextInner.style.transform = "scale(1)";
-        const rect = bgTextInner.getBoundingClientRect();
+        if (!bgText || !bgTextInner) return;
         const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
         const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-        const isMobile = window.matchMedia("(max-width: 720px), (max-height: 520px)").matches;
-        const maxW = vw * (isMobile ? 0.9 : 0.95);
-        const maxH = vh * (isMobile ? 0.16 : 0.24);
+        const maxW = Math.max(0, vw - 32);
+        const maxH = vh * 0.22;
+        const baseSize = 200;
+        bgText.style.setProperty("--bg-font-size", baseSize + "px");
+        const rect = bgTextInner.getBoundingClientRect();
         const scale = Math.min(maxW / rect.width, maxH / rect.height, 1);
-        bgTextInner.style.transform = "scale(" + scale.toFixed(3) + ")";
+        const nextSize = Math.max(28, baseSize * scale);
+        bgText.style.setProperty("--bg-font-size", nextSize.toFixed(2) + "px");
       }
 
       function typeBgText() {
