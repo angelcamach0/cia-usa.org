@@ -10,8 +10,454 @@
 
 export default {
   async fetch(request, env, ctx) {
-    // You can view your logs in the Observability dashboard
-    console.info({ message: 'Hello World Worker received a request!' }); 
-    return new Response('Hello World!');
+    // Minimal Matrix-rain page, no external assets.
+    const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Matrix Rain</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #050a08;
+        --green: #00ff7a;
+        --green-dim: #0b3d2a;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: radial-gradient(1200px 800px at 70% 20%, #092015 0%, var(--bg) 60%);
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+        filter: blur(0.2px);
+      }
+      #rabbit {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+      .overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background:
+          linear-gradient(transparent 0%, rgba(0,0,0,0.35) 100%),
+          repeating-linear-gradient(
+            to bottom,
+            rgba(0,0,0,0.0) 0px,
+            rgba(0,0,0,0.0) 2px,
+            rgba(0,0,0,0.08) 3px
+          );
+        mix-blend-mode: screen;
+      }
+      .glitch-layer {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0;
+        background:
+          repeating-linear-gradient(
+            to bottom,
+            rgba(255, 0, 0, 0.12) 0px,
+            rgba(255, 0, 0, 0.12) 2px,
+            transparent 3px,
+            transparent 6px
+          ),
+          linear-gradient(120deg, rgba(255, 0, 0, 0.18), transparent 60%);
+        mix-blend-mode: screen;
+      }
+      .bg-text {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-family: "Impact", "Haettenschweiler", "Arial Black", sans-serif;
+        font-size: clamp(64px, 18vw, 220px);
+        letter-spacing: 0.12em;
+        color: rgba(0, 255, 122, 0.08);
+        text-transform: lowercase;
+        text-shadow: 0 0 30px rgba(0, 255, 122, 0.12);
+        pointer-events: none;
+        z-index: 0;
+      }
+      canvas { z-index: 1; }
+      #rabbit { z-index: 2; }
+      .overlay { z-index: 3; }
+      .glitch-layer { z-index: 4; }
+      .badge { z-index: 5; }
+      body.glitch canvas {
+        filter: sepia(1) saturate(5) hue-rotate(-35deg);
+      }
+      body.glitch .glitch-layer {
+        opacity: 0.4;
+        animation: glitch-flicker 0.4s steps(2, end) infinite;
+      }
+      body.shake {
+        animation: screen-shake 0.4s linear;
+      }
+      @keyframes screen-shake {
+        0% { transform: translate(0, 0); }
+        10% { transform: translate(-3px, 2px); }
+        20% { transform: translate(4px, -3px); }
+        30% { transform: translate(-4px, 3px); }
+        40% { transform: translate(3px, -2px); }
+        50% { transform: translate(-2px, 1px); }
+        60% { transform: translate(3px, 2px); }
+        70% { transform: translate(-3px, -2px); }
+        80% { transform: translate(2px, 3px); }
+        90% { transform: translate(-2px, -3px); }
+        100% { transform: translate(0, 0); }
+      }
+      @keyframes glitch-flicker {
+        0% { opacity: 0.45; }
+        50% { opacity: 0.2; }
+        100% { opacity: 0.5; }
+      }
+      .badge {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 12px;
+        color: var(--green);
+        text-shadow: 0 0 8px rgba(0,255,122,0.5);
+        opacity: 0.7;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="matrix"></canvas>
+    <canvas id="rabbit"></canvas>
+    <div class="bg-text">angelcamach0</div>
+    <div class="overlay"></div>
+    <div class="glitch-layer"></div>
+    <div class="badge">cloudflare worker</div>
+    <script>
+      const canvas = document.getElementById("matrix");
+      const ctx = canvas.getContext("2d");
+      const rabbitCanvas = document.getElementById("rabbit");
+      const rabbitCtx = rabbitCanvas.getContext("2d");
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*";
+      let width, height, columns, drops;
+      const trail = [];
+      const bursts = [];
+      const sentinels = [];
+      const rabbit = {
+        x: -40,
+        y: window.innerHeight - 40,
+        vx: 1.2,
+        phase: 0,
+        scale: 2.2
+      };
+      let lastSpawn = 0;
+      let kills = 0;
+      let escaped = 0;
+      let shakeTimer = 0;
+      let glitchTimer = 0;
+      const mouse = { x: 0, y: 0, active: false };
+
+      function triggerEscapeEffect() {
+        document.body.classList.add("shake", "glitch");
+        clearTimeout(shakeTimer);
+        clearTimeout(glitchTimer);
+        shakeTimer = setTimeout(() => document.body.classList.remove("shake"), 420);
+        glitchTimer = setTimeout(() => document.body.classList.remove("glitch"), 520);
+      }
+
+      function resize() {
+        width = canvas.width = window.innerWidth * devicePixelRatio;
+        height = canvas.height = window.innerHeight * devicePixelRatio;
+        rabbitCanvas.width = window.innerWidth * devicePixelRatio;
+        rabbitCanvas.height = window.innerHeight * devicePixelRatio;
+        ctx.scale(devicePixelRatio, devicePixelRatio);
+        rabbitCtx.scale(devicePixelRatio, devicePixelRatio);
+        columns = Math.floor(window.innerWidth / 14);
+        drops = Array.from({ length: columns }, () => Math.random() * window.innerHeight);
+        rabbit.y = window.innerHeight - 40;
+      }
+
+      function drawTrail() {
+        for (let i = trail.length - 1; i >= 0; i--) {
+          const p = trail[i];
+          p.life -= 0.03;
+          if (p.life <= 0) {
+            trail.splice(i, 1);
+            continue;
+          }
+          ctx.fillStyle = "rgba(0, 255, 122, " + p.life.toFixed(3) + ")";
+          ctx.font = "16px monospace";
+          ctx.fillText(p.char, p.x, p.y);
+        }
+      }
+
+      function drawBursts() {
+        for (let i = bursts.length - 1; i >= 0; i--) {
+          const p = bursts[i];
+          p.life -= 0.02;
+          if (p.life <= 0) {
+            bursts.splice(i, 1);
+            continue;
+          }
+          p.vy += 0.06;
+          p.x += p.vx;
+          p.y += p.vy;
+          ctx.fillStyle = "rgba(0, 255, 122, " + p.life.toFixed(3) + ")";
+          ctx.font = "14px monospace";
+          ctx.fillText(p.char, p.x, p.y);
+        }
+      }
+
+      function drawSentinels(now) {
+        const maxSentinels = 8;
+        if (now - lastSpawn > 900 && sentinels.length < maxSentinels) {
+          lastSpawn = now;
+          const dir = Math.random() > 0.5 ? 1 : -1;
+          const scale = 2 + Math.random() * 2;
+          const speedRoll = Math.random();
+          const baseSpeed =
+            speedRoll < 0.6 ? 2.4 + Math.random() * 2.2 :
+            speedRoll < 0.85 ? 0.7 + Math.random() * 0.9 :
+            0.2 + Math.random() * 0.4;
+          const hp = speedRoll < 0.85 ? 1 : 5;
+          sentinels.push({
+            x: dir > 0 ? -40 : window.innerWidth + 40,
+            y: Math.random() * window.innerHeight * 0.9 + 20,
+            vx: dir * baseSpeed,
+            vy: (Math.random() - 0.5) * 0.2,
+            wobble: Math.random() * Math.PI * 2,
+            scale,
+            life: 1,
+            w: 8 * scale,
+            h: 8 * scale,
+            hp,
+            maxHp: hp
+          });
+        }
+
+        for (let i = sentinels.length - 1; i >= 0; i--) {
+          const s = sentinels[i];
+          s.wobble += 0.02;
+          s.y += s.vy + Math.sin(s.wobble) * 0.2;
+          s.x += s.vx;
+          if (s.x < -80 || s.x > window.innerWidth + 80) {
+            sentinels.splice(i, 1);
+            escaped++;
+            triggerEscapeEffect();
+            continue;
+          }
+          const px = s.x;
+          const py = s.y;
+          const unit = s.scale;
+
+          // Pixelated "sentinel" silhouette.
+          const pattern = [
+            "00111100",
+            "01111110",
+            "11100111",
+            "11011011",
+            "11111111",
+            "01111110",
+            "00111100",
+            "00011000"
+          ];
+          ctx.fillStyle = "rgba(0, 255, 122, 0.18)";
+          ctx.shadowColor = "rgba(0, 255, 122, 0.5)";
+          ctx.shadowBlur = 10;
+          for (let y = 0; y < pattern.length; y++) {
+            for (let x = 0; x < pattern[y].length; x++) {
+              if (pattern[y][x] === "1") {
+                ctx.fillRect(px + x * unit, py + y * unit, unit, unit);
+              }
+            }
+          }
+          // Tentacles trailing behind the sentinel.
+          ctx.shadowBlur = 6;
+          ctx.strokeStyle = "rgba(0, 255, 122, 0.22)";
+          ctx.lineWidth = Math.max(1, unit / 2);
+          const tailDir = s.vx > 0 ? -1 : 1;
+          for (let t = 0; t < 5; t++) {
+            const startX = px + (pattern[0].length * unit) / 2 + t * unit * 0.6;
+            const startY = py + pattern.length * unit - unit;
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            let cx = startX;
+            let cy = startY;
+            for (let seg = 0; seg < 6; seg++) {
+              cx += tailDir * (2 + seg) * unit * 0.7;
+              cy += (Math.sin(s.wobble + seg * 0.7 + t) * unit) + unit * 0.6;
+              ctx.lineTo(cx, cy);
+            }
+            ctx.stroke();
+          }
+          if (s.maxHp > 1) {
+            const barW = s.w;
+            const barH = Math.max(2, unit / 2);
+            const barX = px;
+            const barY = py - barH - 3;
+            ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+            ctx.fillRect(barX, barY, barW, barH);
+            ctx.fillStyle = "rgba(0, 255, 122, 0.7)";
+            ctx.fillRect(barX, barY, barW * (s.hp / s.maxHp), barH);
+          }
+          ctx.shadowBlur = 0;
+        }
+      }
+
+      function drawRabbit() {
+        rabbitCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        rabbit.phase += 0.12;
+        rabbit.x += rabbit.vx;
+        if (rabbit.x > window.innerWidth + 40) {
+          rabbit.x = -60;
+        }
+        const hop = Math.abs(Math.sin(rabbit.phase)) * 10;
+        const px = rabbit.x;
+        const py = rabbit.y - hop;
+        const unit = rabbit.scale;
+        const pattern = [
+          "00100100",
+          "00100100",
+          "00111100",
+          "01111110",
+          "11111111",
+          "11111111",
+          "11111111",
+          "11111111",
+          "01111110",
+          "01111110",
+          "00100100"
+        ];
+        rabbitCtx.fillStyle = "rgba(230, 255, 255, 0.9)";
+        for (let y = 0; y < pattern.length; y++) {
+          for (let x = 0; x < pattern[y].length; x++) {
+            if (pattern[y][x] === "1") {
+              rabbitCtx.fillRect(px + x * unit, py + y * unit, unit, unit);
+            }
+          }
+        }
+        // Eyes and tail.
+        rabbitCtx.fillStyle = "rgba(20, 25, 20, 0.9)";
+        rabbitCtx.fillRect(px + unit * 3, py + unit * 4, unit, unit);
+        rabbitCtx.fillRect(px + unit * 5, py + unit * 4, unit, unit);
+        rabbitCtx.fillStyle = "rgba(230, 255, 255, 0.9)";
+        rabbitCtx.fillRect(px + unit * 7, py + unit * 7, unit, unit);
+
+        rabbit.hit = {
+          x: px,
+          y: py,
+          w: pattern[0].length * unit,
+          h: pattern.length * unit
+        };
+      }
+
+      function draw() {
+        const now = performance.now();
+        ctx.fillStyle = "rgba(5, 10, 8, 0.08)";
+        ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+        ctx.fillStyle = "#00ff7a";
+        ctx.font = "14px monospace";
+        for (let i = 0; i < drops.length; i++) {
+          const char = chars[Math.floor(Math.random() * chars.length)];
+          const x = i * 14;
+          const y = drops[i] * 14;
+          ctx.fillText(char, x, y);
+          if (y > window.innerHeight && Math.random() > 0.975) {
+            drops[i] = 0;
+          }
+          drops[i]++;
+        }
+        drawSentinels(now);
+        drawRabbit();
+        drawTrail();
+        drawBursts();
+        ctx.fillStyle = "rgba(0, 255, 122, 0.7)";
+        ctx.font = "12px monospace";
+        ctx.fillText("Sentinels killed: " + kills, 16, window.innerHeight - 16);
+        ctx.fillText("Sentinels escaped: " + escaped, 16, window.innerHeight - 32);
+        requestAnimationFrame(draw);
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        mouse.active = true;
+        mouse.x = event.clientX;
+        mouse.y = event.clientY;
+        trail.push({
+          x: mouse.x,
+          y: mouse.y,
+          life: 0.9,
+          char: chars[Math.floor(Math.random() * chars.length)]
+        });
+        if (trail.length > 80) {
+          trail.splice(0, trail.length - 80);
+        }
+      });
+
+      window.addEventListener("pointerdown", (event) => {
+        if (rabbit.hit) {
+          const hit =
+            event.clientX >= rabbit.hit.x &&
+            event.clientX <= rabbit.hit.x + rabbit.hit.w &&
+            event.clientY >= rabbit.hit.y &&
+            event.clientY <= rabbit.hit.y + rabbit.hit.h;
+          if (hit) {
+            window.location.href = "https://github.com/angelcamach0";
+            return;
+          }
+        }
+        // Click to destroy sentinels.
+        for (let i = sentinels.length - 1; i >= 0; i--) {
+          const s = sentinels[i];
+          const hit =
+            event.clientX >= s.x &&
+            event.clientX <= s.x + s.w &&
+            event.clientY >= s.y &&
+            event.clientY <= s.y + s.h;
+          if (hit) {
+            s.hp -= 1;
+            if (s.hp <= 0) {
+              sentinels.splice(i, 1);
+              kills++;
+            }
+            break;
+          }
+        }
+        const count = 24;
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 1 + Math.random() * 2.2;
+          bursts.push({
+            x: event.clientX,
+            y: event.clientY,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 1.2,
+            life: 0.9,
+            char: chars[Math.floor(Math.random() * chars.length)]
+          });
+        }
+        if (bursts.length > 240) {
+          bursts.splice(0, bursts.length - 240);
+        }
+      });
+
+      window.addEventListener("resize", () => {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        rabbitCtx.setTransform(1, 0, 0, 1, 0, 0);
+        resize();
+      });
+
+      resize();
+      draw();
+    </script>
+  </body>
+</html>`;
+    return new Response(html, {
+      headers: { "content-type": "text/html; charset=utf-8" }
+    });
   }
 };
