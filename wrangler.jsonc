@@ -1,0 +1,37 @@
+{
+  "name": "misty-meadow-70ec",
+  "main": "src/worker.js",
+  "workers_dev": true,
+  "preview_urls": true,
+  "compatibility_date": "2026-01-19",
+  "routes": [
+    {
+      "pattern": "cia-usa.org",
+      "zone_name": "cia-usa.org",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.cia-usa.org",
+      "zone_name": "cia-usa.org",
+      "custom_domain": true
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "persist": true,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": false,
+      "persist": true,
+      "head_sampling_rate": 1
+    }
+  },
+  "ai": {
+    "binding": "MY_AI_BINDING"
+  }
+}
