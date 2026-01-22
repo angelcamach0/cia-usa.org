@@ -25,10 +25,11 @@ npm run deploy
 
 ## Customize
 
-- Update the name in `src/worker.js` at `.bg-name[data-text="..."]`.
-- Tweak palette variables under `:root` in the embedded `<style>`.
-- Adjust sentinel spawn rate, speed, and HP in `drawSentinels()`.
-- Change the rabbit link URL in the pointer handler.
+- Edit the `config` object near the top of the embedded script in `src/worker.js`.
+- Palette updates in `config.palette` automatically sync to CSS variables.
+- Use `config.bgName` for the background name and `config.rabbitUrl` for the rabbit link.
+- Adjust spawn rate and behavior in `config.sentinels`.
+- Tune matrix density, fonts, and fade in `config.matrix`, `config.trail`, and `config.bursts`.
 
 ## Reliability and safety notes
 

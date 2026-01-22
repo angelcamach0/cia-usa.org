@@ -161,13 +161,13 @@ export default {
       }
     </style>
   </head>
-  <body>
+    <body>
     <canvas id="matrix"></canvas>
     <canvas id="sentinels"></canvas>
     <canvas id="rabbit"></canvas>
     <div class="bg-text">
       <span class="bg-text-inner">
-        <span class="bg-name" data-text="angelcamach0"></span>
+        <span class="bg-name"></span>
         <span class="bg-cursor">█</span>
       </span>
     </div>
@@ -177,6 +177,55 @@ export default {
     <script>
       (() => {
         "use strict";
+
+        const config = {
+          bgName: "angelcamach0",
+          rabbitUrl: "https://github.com/angelcamach0",
+          palette: {
+            bg: "#050a08",
+            green: "#00ff7a",
+            greenDim: "#0b3d2a"
+          },
+          matrix: {
+            chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*",
+            columnWidth: 14,
+            fontSize: 14,
+            fadeAlpha: 0.08
+          },
+          trail: {
+            fontSize: 16,
+            max: 80
+          },
+          bursts: {
+            fontSize: 14,
+            count: 24,
+            max: 240
+          },
+          sentinels: {
+            max: 8,
+            spawnIntervalMs: 900,
+            speedThresholds: { fast: 0.6, mid: 0.85 },
+            speedRanges: {
+              fast: { min: 2.4, extra: 2.2 },
+              mid: { min: 0.7, extra: 0.9 },
+              slow: { min: 0.2, extra: 0.4 }
+            },
+            toughHp: 5
+          },
+          rabbit: {
+            speed: 1.2,
+            scale: 2.2,
+            hopAmplitude: 10,
+            phaseStep: 0.12,
+            yOffset: 40,
+            wrapRight: 40,
+            wrapLeft: -60
+          },
+          stats: {
+            fontSize: 12,
+            color: "rgba(0, 255, 122, 0.7)"
+          }
+        };
 
         const canvas = document.getElementById("matrix");
         const ctx = canvas && canvas.getContext ? canvas.getContext("2d") : null;
@@ -193,7 +242,7 @@ export default {
           return;
         }
 
-        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*";
+        const chars = config.matrix.chars;
         let width, height, columns, drops;
         const trail = [];
         const bursts = [];
@@ -202,10 +251,10 @@ export default {
         // Rabbit sprite that hops across the screen and acts as a link target.
         const rabbit = {
           x: -40,
-          y: window.innerHeight - 40,
-          vx: 1.2,
+          y: window.innerHeight - config.rabbit.yOffset,
+          vx: config.rabbit.speed,
           phase: 0,
-          scale: 2.2
+          scale: config.rabbit.scale
         };
         let lastSpawn = 0;
         let kills = 0;
@@ -217,6 +266,13 @@ export default {
         const toNumber = (value, fallback) => (Number.isFinite(value) ? value : fallback);
         const hitTest = (x, y, rect) =>
           x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
+
+        document.documentElement.style.setProperty("--bg", config.palette.bg);
+        document.documentElement.style.setProperty("--green", config.palette.green);
+        document.documentElement.style.setProperty("--green-dim", config.palette.greenDim);
+        if (bgName) {
+          bgName.setAttribute("data-text", config.bgName);
+        }
 
         // Flash/glitch feedback when a sentinel escapes off-screen.
         function triggerEscapeEffect() {
@@ -239,9 +295,9 @@ export default {
           ctx.scale(dpr, dpr);
           sentinelsCtx.scale(dpr, dpr);
           rabbitCtx.scale(dpr, dpr);
-          columns = Math.floor(window.innerWidth / 14);
+          columns = Math.floor(window.innerWidth / config.matrix.columnWidth);
           drops = Array.from({ length: columns }, () => Math.random() * window.innerHeight);
-          rabbit.y = window.innerHeight - 40;
+          rabbit.y = window.innerHeight - config.rabbit.yOffset;
           fitBgText();
         }
 
@@ -314,11 +370,11 @@ export default {
               trail.splice(i, 1);
               continue;
             }
-            ctx.fillStyle = "rgba(0, 255, 122, " + p.life.toFixed(3) + ")";
-            ctx.font = "16px monospace";
-            ctx.fillText(p.char, p.x, p.y);
-          }
+          ctx.fillStyle = "rgba(0, 255, 122, " + p.life.toFixed(3) + ")";
+          ctx.font = config.trail.fontSize + "px monospace";
+          ctx.fillText(p.char, p.x, p.y);
         }
+      }
 
         // Burst particles emitted on click.
         function drawBursts() {
@@ -332,26 +388,28 @@ export default {
             p.vy += 0.06;
             p.x += p.vx;
             p.y += p.vy;
-            ctx.fillStyle = "rgba(0, 255, 122, " + p.life.toFixed(3) + ")";
-            ctx.font = "14px monospace";
-            ctx.fillText(p.char, p.x, p.y);
-          }
+          ctx.fillStyle = "rgba(0, 255, 122, " + p.life.toFixed(3) + ")";
+          ctx.font = config.bursts.fontSize + "px monospace";
+          ctx.fillText(p.char, p.x, p.y);
         }
+      }
 
         // Spawn and render sentinel enemies, with HP bars on tougher ones.
         function drawSentinels(now) {
           sentinelsCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-          const maxSentinels = 8;
-          if (now - lastSpawn > 900 && sentinels.length < maxSentinels) {
+          const maxSentinels = config.sentinels.max;
+          if (now - lastSpawn > config.sentinels.spawnIntervalMs && sentinels.length < maxSentinels) {
             lastSpawn = now;
             const dir = Math.random() > 0.5 ? 1 : -1;
             const scale = 2 + Math.random() * 2;
             const speedRoll = Math.random();
+            const speedThresholds = config.sentinels.speedThresholds;
+            const speedRanges = config.sentinels.speedRanges;
             const baseSpeed =
-              speedRoll < 0.6 ? 2.4 + Math.random() * 2.2 :
-              speedRoll < 0.85 ? 0.7 + Math.random() * 0.9 :
-              0.2 + Math.random() * 0.4;
-            const hp = speedRoll < 0.85 ? 1 : 5;
+              speedRoll < speedThresholds.fast ? speedRanges.fast.min + Math.random() * speedRanges.fast.extra :
+              speedRoll < speedThresholds.mid ? speedRanges.mid.min + Math.random() * speedRanges.mid.extra :
+              speedRanges.slow.min + Math.random() * speedRanges.slow.extra;
+            const hp = speedRoll < speedThresholds.mid ? 1 : config.sentinels.toughHp;
             sentinels.push({
               x: dir > 0 ? -40 : window.innerWidth + 40,
               y: Math.random() * window.innerHeight * 0.9 + 20,
@@ -439,12 +497,12 @@ export default {
         // Animate and draw the rabbit sprite, plus update its hitbox.
         function drawRabbit() {
           rabbitCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-          rabbit.phase += 0.12;
+          rabbit.phase += config.rabbit.phaseStep;
           rabbit.x += rabbit.vx;
-          if (rabbit.x > window.innerWidth + 40) {
-            rabbit.x = -60;
+          if (rabbit.x > window.innerWidth + config.rabbit.wrapRight) {
+            rabbit.x = config.rabbit.wrapLeft;
           }
-          const hop = Math.abs(Math.sin(rabbit.phase)) * 10;
+          const hop = Math.abs(Math.sin(rabbit.phase)) * config.rabbit.hopAmplitude;
           const px = rabbit.x;
           const py = rabbit.y - hop;
           const unit = rabbit.scale;
@@ -487,14 +545,14 @@ export default {
         // Main animation loop: matrix rain, sentinels, rabbit, and effects.
         function draw() {
           const now = performance.now();
-          ctx.fillStyle = "rgba(5, 10, 8, 0.08)";
+          ctx.fillStyle = "rgba(5, 10, 8, " + config.matrix.fadeAlpha + ")";
           ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
-          ctx.fillStyle = "#00ff7a";
-          ctx.font = "14px monospace";
+          ctx.fillStyle = config.palette.green;
+          ctx.font = config.matrix.fontSize + "px monospace";
           for (let i = 0; i < drops.length; i++) {
             const char = chars[Math.floor(Math.random() * chars.length)];
-            const x = i * 14;
-            const y = drops[i] * 14;
+            const x = i * config.matrix.columnWidth;
+            const y = drops[i] * config.matrix.columnWidth;
             ctx.fillText(char, x, y);
             if (y > window.innerHeight && Math.random() > 0.975) {
               drops[i] = 0;
@@ -505,8 +563,8 @@ export default {
           drawRabbit();
           drawTrail();
           drawBursts();
-          ctx.fillStyle = "rgba(0, 255, 122, 0.7)";
-          ctx.font = "12px monospace";
+          ctx.fillStyle = config.stats.color;
+          ctx.font = config.stats.fontSize + "px monospace";
           ctx.fillText("Sentinels killed: " + kills, 16, window.innerHeight - 16);
           ctx.fillText("Sentinels escaped: " + escaped, 16, window.innerHeight - 32);
           requestAnimationFrame(draw);
@@ -523,8 +581,8 @@ export default {
             life: 0.9,
             char: chars[Math.floor(Math.random() * chars.length)]
           });
-          if (trail.length > 80) {
-            trail.splice(0, trail.length - 80);
+          if (trail.length > config.trail.max) {
+            trail.splice(0, trail.length - config.trail.max);
           }
         });
 
@@ -533,7 +591,7 @@ export default {
           const clickX = toNumber(event.clientX, 0);
           const clickY = toNumber(event.clientY, 0);
           if (rabbit.hit && hitTest(clickX, clickY, rabbit.hit)) {
-            window.location.href = "https://github.com/angelcamach0";
+            window.location.href = config.rabbitUrl;
             return;
           }
           // Click to destroy sentinels.
@@ -548,7 +606,7 @@ export default {
               break;
             }
           }
-          const count = 24;
+          const count = config.bursts.count;
           for (let i = 0; i < count; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = 1 + Math.random() * 2.2;
@@ -561,8 +619,8 @@ export default {
               char: chars[Math.floor(Math.random() * chars.length)]
             });
           }
-          if (bursts.length > 240) {
-            bursts.splice(0, bursts.length - 240);
+          if (bursts.length > config.bursts.max) {
+            bursts.splice(0, bursts.length - config.bursts.max);
           }
         });
 
