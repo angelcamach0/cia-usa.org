@@ -19,11 +19,6 @@ export default {
         });
       }
       const appConfig = {
-        texts: {
-          title: "Matrix Rain",
-          bgName: "angelcamach0",
-          badge: "cloudflare worker"
-        },
         rabbitUrl: "https://github.com/angelcamach0",
         palette: {
           bg: "#050a08",
@@ -81,7 +76,39 @@ export default {
           enabled: true
         }
       };
-      const configJson = JSON.stringify(appConfig).replace(/</g, "\\u003c");
+      const appStrings = {
+        title: "Matrix Rain",
+        bgName: "angelcamach0",
+        badge: "cloudflare worker",
+        statsKilledLabel: "Sentinels killed",
+        statsEscapedLabel: "Sentinels escaped"
+      };
+      const themeCss = `:root {
+  color-scheme: dark;
+  --bg: #050a08;
+  --green: #00ff7a;
+  --green-dim: #0b3d2a;
+  --bg-gradient: radial-gradient(1200px 800px at 70% 20%, #092015 0%, var(--bg) 60%);
+  --overlay-opacity: 1;
+  --glitch-opacity: 0.4;
+}`;
+
+      const url = new URL(request.url);
+      if (url.pathname === "/config.json") {
+        return new Response(JSON.stringify(appConfig, null, 2), {
+          headers: { "content-type": "application/json; charset=utf-8" }
+        });
+      }
+      if (url.pathname === "/strings.json") {
+        return new Response(JSON.stringify(appStrings, null, 2), {
+          headers: { "content-type": "application/json; charset=utf-8" }
+        });
+      }
+      if (url.pathname === "/theme.css") {
+        return new Response(themeCss, {
+          headers: { "content-type": "text/css; charset=utf-8" }
+        });
+      }
       // Minimal Matrix-rain page, no external assets.
       const html = `<!doctype html>
 <html lang="en">
@@ -89,6 +116,7 @@ export default {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Matrix Rain</title>
+    <link rel="stylesheet" href="/theme.css" />
     <style>
       :root {
         color-scheme: dark;
@@ -233,7 +261,6 @@ export default {
     <canvas id="matrix"></canvas>
     <canvas id="sentinels"></canvas>
     <canvas id="rabbit"></canvas>
-    <script id="app-config" type="application/json">${configJson}</script>
     <div class="bg-text">
       <span class="bg-text-inner">
         <span class="bg-name"></span>
@@ -244,14 +271,82 @@ export default {
     <div class="glitch-layer"></div>
     <div class="badge">cloudflare worker</div>
     <script>
-      (() => {
+      (async () => {
         "use strict";
 
-        const defaultConfig = ${configJson};
-        const configTag = document.getElementById("app-config");
-        const configFromTag = configTag ? safeJsonParse(configTag.textContent) : {};
-        const configFromQuery = readQueryOverrides();
-        const config = mergeDeep({}, defaultConfig, configFromTag, configFromQuery);
+        const defaultConfig = {
+          rabbitUrl: "https://github.com/angelcamach0",
+          palette: {
+            bg: "#050a08",
+            green: "#00ff7a",
+            greenDim: "#0b3d2a",
+            bgGradient: "radial-gradient(1200px 800px at 70% 20%, #092015 0%, var(--bg) 60%)"
+          },
+          overlays: {
+            overlayOpacity: 1,
+            glitchOpacity: 0.4
+          },
+          matrix: {
+            chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*",
+            columnWidth: 14,
+            fontSize: 14,
+            fadeAlpha: 0.08,
+            resetChance: 0.025
+          },
+          trail: {
+            fontSize: 16,
+            max: 80
+          },
+          bursts: {
+            fontSize: 14,
+            count: 24,
+            max: 240
+          },
+          sentinels: {
+            max: 8,
+            spawnIntervalMs: 900,
+            speedThresholds: { fast: 0.6, mid: 0.85 },
+            speedRanges: {
+              fast: { min: 2.4, extra: 2.2 },
+              mid: { min: 0.7, extra: 0.9 },
+              slow: { min: 0.2, extra: 0.4 }
+            },
+            scaleRange: { min: 2, extra: 2 },
+            wobbleAmplitude: 0.2,
+            toughHp: 5
+          },
+          rabbit: {
+            speed: 1.2,
+            scale: 2.2,
+            hopAmplitude: 10,
+            phaseStep: 0.12,
+            yOffset: 40,
+            wrapRight: 40,
+            wrapLeft: -60
+          },
+          stats: {
+            fontSize: 12,
+            color: "rgba(0, 255, 122, 0.7)"
+          },
+          interactions: {
+            enabled: true
+          }
+        };
+        const defaultStrings = {
+          title: "Matrix Rain",
+          bgName: "angelcamach0",
+          badge: "cloudflare worker",
+          statsKilledLabel: "Sentinels killed",
+          statsEscapedLabel: "Sentinels escaped"
+        };
+
+        const [remoteConfig, remoteStrings] = await Promise.all([
+          fetchJson("/config.json"),
+          fetchJson("/strings.json")
+        ]);
+        const queryOverrides = readQueryOverrides();
+        const config = mergeDeep({}, defaultConfig, remoteConfig, queryOverrides.config);
+        const strings = mergeDeep({}, defaultStrings, remoteStrings, queryOverrides.strings);
 
         const canvas = document.getElementById("matrix");
         const ctx = canvas && canvas.getContext ? canvas.getContext("2d") : null;
@@ -294,7 +389,7 @@ export default {
         const hitTest = (x, y, rect) =>
           x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
 
-        document.title = config.texts.title || document.title;
+        document.title = strings.title || document.title;
         document.documentElement.style.setProperty("--bg", config.palette.bg);
         document.documentElement.style.setProperty("--green", config.palette.green);
         document.documentElement.style.setProperty("--green-dim", config.palette.greenDim);
@@ -304,10 +399,10 @@ export default {
         document.documentElement.style.setProperty("--overlay-opacity", config.overlays.overlayOpacity);
         document.documentElement.style.setProperty("--glitch-opacity", config.overlays.glitchOpacity);
         if (bgName) {
-          bgName.setAttribute("data-text", config.texts.bgName);
+          bgName.setAttribute("data-text", strings.bgName);
         }
         if (badge) {
-          badge.textContent = config.texts.badge;
+          badge.textContent = strings.badge;
         }
 
         // Flash/glitch feedback when a sentinel escapes off-screen.
@@ -601,8 +696,8 @@ export default {
           drawBursts();
           ctx.fillStyle = config.stats.color;
           ctx.font = config.stats.fontSize + "px monospace";
-          ctx.fillText("Sentinels killed: " + kills, 16, window.innerHeight - 16);
-          ctx.fillText("Sentinels escaped: " + escaped, 16, window.innerHeight - 32);
+          ctx.fillText(strings.statsKilledLabel + ": " + kills, 16, window.innerHeight - 16);
+          ctx.fillText(strings.statsEscapedLabel + ": " + escaped, 16, window.innerHeight - 32);
           requestAnimationFrame(draw);
         }
 
@@ -682,12 +777,14 @@ export default {
           console.error("Animation loop failed to start.", err);
         }
 
-        function safeJsonParse(value) {
-          if (!value) return {};
+        async function fetchJson(path) {
           try {
-            return JSON.parse(value);
+            const response = await fetch(path, { cache: "no-cache" });
+            if (!response.ok) return {};
+            const data = await response.json();
+            return data && typeof data === "object" ? data : {};
           } catch (err) {
-            console.error("Invalid JSON config; using defaults.", err);
+            console.error("Failed to load " + path + "; using defaults.", err);
             return {};
           }
         }
@@ -712,17 +809,22 @@ export default {
 
         function readQueryOverrides() {
           const params = new URLSearchParams(window.location.search);
-          const overrides = {};
+          const configOverrides = {};
+          const stringOverrides = {};
           const setIf = (path, value) => {
             if (value === null || value === undefined || value === "") return;
             const keys = path.split(".");
-            let cursor = overrides;
+            let cursor = configOverrides;
             for (let i = 0; i < keys.length - 1; i++) {
               const key = keys[i];
               if (!cursor[key] || typeof cursor[key] !== "object") cursor[key] = {};
               cursor = cursor[key];
             }
             cursor[keys[keys.length - 1]] = value;
+          };
+          const setString = (key, value) => {
+            if (value === null || value === undefined || value === "") return;
+            stringOverrides[key] = value;
           };
           const toFloat = (value, fallback) => {
             const parsed = Number.parseFloat(value);
@@ -733,9 +835,11 @@ export default {
             return Number.isFinite(parsed) ? parsed : fallback;
           };
 
-          setIf("texts.title", params.get("title"));
-          setIf("texts.bgName", params.get("bgName"));
-          setIf("texts.badge", params.get("badge"));
+          setString("title", params.get("title"));
+          setString("bgName", params.get("bgName"));
+          setString("badge", params.get("badge"));
+          setString("statsKilledLabel", params.get("statsKilledLabel"));
+          setString("statsEscapedLabel", params.get("statsEscapedLabel"));
           setIf("rabbitUrl", params.get("rabbitUrl"));
           setIf("palette.bg", params.get("bg"));
           setIf("palette.green", params.get("green"));
@@ -760,7 +864,7 @@ export default {
             setIf("interactions.enabled", interactions === "1");
           }
 
-          return overrides;
+          return { config: configOverrides, strings: stringOverrides };
         }
       })();
     </script>
