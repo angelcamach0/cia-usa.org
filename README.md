@@ -30,6 +30,43 @@ npm run deploy
 - `strings.json` controls every word that appears on the page (title, badge, labels).
 - `theme.css` holds CSS variables such as colors and the background gradient.
 
+### Editing the endpoints
+
+You can copy these defaults into your own files and adjust them:
+
+`/config.json`:
+```json
+{
+  "rabbitUrl": "https://github.com/angelcamach0",
+  "matrix": { "columnWidth": 12, "fontSize": 14, "fadeAlpha": 0.08 },
+  "sentinels": { "max": 6, "spawnIntervalMs": 900 },
+  "interactions": { "enabled": true }
+}
+```
+
+`/strings.json`:
+```json
+{
+  "title": "Matrix Rain",
+  "bgName": "angelcamach0",
+  "badge": "cloudflare worker",
+  "statsKilledLabel": "Sentinels killed",
+  "statsEscapedLabel": "Sentinels escaped"
+}
+```
+
+`/theme.css`:
+```css
+:root {
+  --bg: #050a08;
+  --green: #00ff7a;
+  --green-dim: #0b3d2a;
+  --bg-gradient: radial-gradient(1200px 800px at 70% 20%, #092015 0%, var(--bg) 60%);
+  --overlay-opacity: 1;
+  --glitch-opacity: 0.4;
+}
+```
+
 ### Query param overrides
 
 You can override common settings via URL query params for quick demos:
