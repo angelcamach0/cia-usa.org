@@ -25,11 +25,32 @@ npm run deploy
 
 ## Customize
 
-- Edit the `config` object near the top of the embedded script in `src/worker.js`.
+- Edit the JSON in the `<script id="app-config" type="application/json">` block in `src/worker.js`.
 - Palette updates in `config.palette` automatically sync to CSS variables.
-- Use `config.bgName` for the background name and `config.rabbitUrl` for the rabbit link.
+- Use `config.texts.bgName` for the background name, `config.texts.title` for the tab title, and `config.texts.badge` for the badge label.
+- Use `config.rabbitUrl` to control the rabbit click destination.
 - Adjust spawn rate and behavior in `config.sentinels`.
 - Tune matrix density, fonts, and fade in `config.matrix`, `config.trail`, and `config.bursts`.
+
+### Query param overrides
+
+You can override common settings via URL query params for quick demos:
+
+```
+?title=My%20Site&bgName=neo&badge=hello&green=%2300ff7a&bg=%23070b08
+```
+
+Supported params:
+
+- `title`, `bgName`, `badge`
+- `rabbitUrl`
+- `bg`, `green`, `greenDim`, `bgGradient`
+- `overlayOpacity`, `glitchOpacity`
+- `chars`, `columnWidth`, `matrixFont`, `fade`, `resetChance`
+- `sentinels`, `spawnMs`
+- `rabbitSpeed`, `rabbitScale`, `hop`
+- `statsFont`, `statsColor`
+- `interactions` (`1` or `0`)
 
 ## Reliability and safety notes
 

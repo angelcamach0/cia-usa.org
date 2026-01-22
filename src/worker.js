@@ -18,6 +18,70 @@ export default {
           headers: { allow: "GET, HEAD" }
         });
       }
+      const appConfig = {
+        texts: {
+          title: "Matrix Rain",
+          bgName: "angelcamach0",
+          badge: "cloudflare worker"
+        },
+        rabbitUrl: "https://github.com/angelcamach0",
+        palette: {
+          bg: "#050a08",
+          green: "#00ff7a",
+          greenDim: "#0b3d2a",
+          bgGradient: "radial-gradient(1200px 800px at 70% 20%, #092015 0%, var(--bg) 60%)"
+        },
+        overlays: {
+          overlayOpacity: 1,
+          glitchOpacity: 0.4
+        },
+        matrix: {
+          chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*",
+          columnWidth: 14,
+          fontSize: 14,
+          fadeAlpha: 0.08,
+          resetChance: 0.025
+        },
+        trail: {
+          fontSize: 16,
+          max: 80
+        },
+        bursts: {
+          fontSize: 14,
+          count: 24,
+          max: 240
+        },
+        sentinels: {
+          max: 8,
+          spawnIntervalMs: 900,
+          speedThresholds: { fast: 0.6, mid: 0.85 },
+          speedRanges: {
+            fast: { min: 2.4, extra: 2.2 },
+            mid: { min: 0.7, extra: 0.9 },
+            slow: { min: 0.2, extra: 0.4 }
+          },
+          scaleRange: { min: 2, extra: 2 },
+          wobbleAmplitude: 0.2,
+          toughHp: 5
+        },
+        rabbit: {
+          speed: 1.2,
+          scale: 2.2,
+          hopAmplitude: 10,
+          phaseStep: 0.12,
+          yOffset: 40,
+          wrapRight: 40,
+          wrapLeft: -60
+        },
+        stats: {
+          fontSize: 12,
+          color: "rgba(0, 255, 122, 0.7)"
+        },
+        interactions: {
+          enabled: true
+        }
+      };
+      const configJson = JSON.stringify(appConfig).replace(/</g, "\\u003c");
       // Minimal Matrix-rain page, no external assets.
       const html = `<!doctype html>
 <html lang="en">
@@ -31,12 +95,15 @@ export default {
         --bg: #050a08;
         --green: #00ff7a;
         --green-dim: #0b3d2a;
+        --bg-gradient: radial-gradient(1200px 800px at 70% 20%, #092015 0%, var(--bg) 60%);
+        --overlay-opacity: 1;
+        --glitch-opacity: 0.4;
       }
       * { box-sizing: border-box; }
       html, body {
         margin: 0;
         height: 100%;
-        background: radial-gradient(1200px 800px at 70% 20%, #092015 0%, var(--bg) 60%);
+        background: var(--bg-gradient);
         overflow: hidden;
       }
       canvas {
@@ -61,6 +128,7 @@ export default {
         position: fixed;
         inset: 0;
         pointer-events: none;
+        opacity: var(--overlay-opacity);
         background:
           linear-gradient(transparent 0%, rgba(0,0,0,0.35) 100%),
           repeating-linear-gradient(
@@ -125,7 +193,7 @@ export default {
         filter: sepia(1) saturate(5) hue-rotate(-35deg);
       }
       body.glitch .glitch-layer {
-        opacity: 0.4;
+        opacity: var(--glitch-opacity);
         animation: glitch-flicker 0.4s steps(2, end) infinite;
       }
       body.shake {
@@ -165,6 +233,7 @@ export default {
     <canvas id="matrix"></canvas>
     <canvas id="sentinels"></canvas>
     <canvas id="rabbit"></canvas>
+    <script id="app-config" type="application/json">${configJson}</script>
     <div class="bg-text">
       <span class="bg-text-inner">
         <span class="bg-name"></span>
@@ -178,60 +247,18 @@ export default {
       (() => {
         "use strict";
 
-        const config = {
-          bgName: "angelcamach0",
-          rabbitUrl: "https://github.com/angelcamach0",
-          palette: {
-            bg: "#050a08",
-            green: "#00ff7a",
-            greenDim: "#0b3d2a"
-          },
-          matrix: {
-            chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*",
-            columnWidth: 14,
-            fontSize: 14,
-            fadeAlpha: 0.08
-          },
-          trail: {
-            fontSize: 16,
-            max: 80
-          },
-          bursts: {
-            fontSize: 14,
-            count: 24,
-            max: 240
-          },
-          sentinels: {
-            max: 8,
-            spawnIntervalMs: 900,
-            speedThresholds: { fast: 0.6, mid: 0.85 },
-            speedRanges: {
-              fast: { min: 2.4, extra: 2.2 },
-              mid: { min: 0.7, extra: 0.9 },
-              slow: { min: 0.2, extra: 0.4 }
-            },
-            toughHp: 5
-          },
-          rabbit: {
-            speed: 1.2,
-            scale: 2.2,
-            hopAmplitude: 10,
-            phaseStep: 0.12,
-            yOffset: 40,
-            wrapRight: 40,
-            wrapLeft: -60
-          },
-          stats: {
-            fontSize: 12,
-            color: "rgba(0, 255, 122, 0.7)"
-          }
-        };
+        const defaultConfig = ${configJson};
+        const configTag = document.getElementById("app-config");
+        const configFromTag = configTag ? safeJsonParse(configTag.textContent) : {};
+        const configFromQuery = readQueryOverrides();
+        const config = mergeDeep({}, defaultConfig, configFromTag, configFromQuery);
 
         const canvas = document.getElementById("matrix");
         const ctx = canvas && canvas.getContext ? canvas.getContext("2d") : null;
         const bgText = document.querySelector(".bg-text");
         const bgTextInner = document.querySelector(".bg-text-inner");
         const bgName = document.querySelector(".bg-name");
+        const badge = document.querySelector(".badge");
         const sentinelsCanvas = document.getElementById("sentinels");
         const sentinelsCtx = sentinelsCanvas && sentinelsCanvas.getContext ? sentinelsCanvas.getContext("2d") : null;
         const rabbitCanvas = document.getElementById("rabbit");
@@ -267,11 +294,20 @@ export default {
         const hitTest = (x, y, rect) =>
           x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
 
+        document.title = config.texts.title || document.title;
         document.documentElement.style.setProperty("--bg", config.palette.bg);
         document.documentElement.style.setProperty("--green", config.palette.green);
         document.documentElement.style.setProperty("--green-dim", config.palette.greenDim);
+        if (config.palette.bgGradient) {
+          document.documentElement.style.setProperty("--bg-gradient", config.palette.bgGradient);
+        }
+        document.documentElement.style.setProperty("--overlay-opacity", config.overlays.overlayOpacity);
+        document.documentElement.style.setProperty("--glitch-opacity", config.overlays.glitchOpacity);
         if (bgName) {
-          bgName.setAttribute("data-text", config.bgName);
+          bgName.setAttribute("data-text", config.texts.bgName);
+        }
+        if (badge) {
+          badge.textContent = config.texts.badge;
         }
 
         // Flash/glitch feedback when a sentinel escapes off-screen.
@@ -401,8 +437,8 @@ export default {
           if (now - lastSpawn > config.sentinels.spawnIntervalMs && sentinels.length < maxSentinels) {
             lastSpawn = now;
             const dir = Math.random() > 0.5 ? 1 : -1;
-            const scale = 2 + Math.random() * 2;
-            const speedRoll = Math.random();
+          const scale = config.sentinels.scaleRange.min + Math.random() * config.sentinels.scaleRange.extra;
+          const speedRoll = Math.random();
             const speedThresholds = config.sentinels.speedThresholds;
             const speedRanges = config.sentinels.speedRanges;
             const baseSpeed =
@@ -428,7 +464,7 @@ export default {
           for (let i = sentinels.length - 1; i >= 0; i--) {
             const s = sentinels[i];
             s.wobble += 0.02;
-            s.y += s.vy + Math.sin(s.wobble) * 0.2;
+            s.y += s.vy + Math.sin(s.wobble) * config.sentinels.wobbleAmplitude;
             s.x += s.vx;
             if (s.x < -80 || s.x > window.innerWidth + 80) {
               sentinels.splice(i, 1);
@@ -554,7 +590,7 @@ export default {
             const x = i * config.matrix.columnWidth;
             const y = drops[i] * config.matrix.columnWidth;
             ctx.fillText(char, x, y);
-            if (y > window.innerHeight && Math.random() > 0.975) {
+            if (y > window.innerHeight && Math.random() < config.matrix.resetChance) {
               drops[i] = 0;
             }
             drops[i]++;
@@ -572,6 +608,7 @@ export default {
 
         // Track pointer movement to leave a character trail.
         window.addEventListener("pointermove", (event) => {
+          if (!config.interactions.enabled) return;
           mouse.active = true;
           mouse.x = toNumber(event.clientX, 0);
           mouse.y = toNumber(event.clientY, 0);
@@ -588,6 +625,7 @@ export default {
 
         // Click handler for rabbit link and sentinel hits.
         window.addEventListener("pointerdown", (event) => {
+          if (!config.interactions.enabled) return;
           const clickX = toNumber(event.clientX, 0);
           const clickY = toNumber(event.clientY, 0);
           if (rabbit.hit && hitTest(clickX, clickY, rabbit.hit)) {
@@ -642,6 +680,87 @@ export default {
           draw();
         } catch (err) {
           console.error("Animation loop failed to start.", err);
+        }
+
+        function safeJsonParse(value) {
+          if (!value) return {};
+          try {
+            return JSON.parse(value);
+          } catch (err) {
+            console.error("Invalid JSON config; using defaults.", err);
+            return {};
+          }
+        }
+
+        function mergeDeep(target, ...sources) {
+          for (const source of sources) {
+            if (!source || typeof source !== "object") continue;
+            for (const key of Object.keys(source)) {
+              const value = source[key];
+              if (value && typeof value === "object" && !Array.isArray(value)) {
+                if (!target[key] || typeof target[key] !== "object") {
+                  target[key] = {};
+                }
+                mergeDeep(target[key], value);
+              } else {
+                target[key] = value;
+              }
+            }
+          }
+          return target;
+        }
+
+        function readQueryOverrides() {
+          const params = new URLSearchParams(window.location.search);
+          const overrides = {};
+          const setIf = (path, value) => {
+            if (value === null || value === undefined || value === "") return;
+            const keys = path.split(".");
+            let cursor = overrides;
+            for (let i = 0; i < keys.length - 1; i++) {
+              const key = keys[i];
+              if (!cursor[key] || typeof cursor[key] !== "object") cursor[key] = {};
+              cursor = cursor[key];
+            }
+            cursor[keys[keys.length - 1]] = value;
+          };
+          const toFloat = (value, fallback) => {
+            const parsed = Number.parseFloat(value);
+            return Number.isFinite(parsed) ? parsed : fallback;
+          };
+          const toInt = (value, fallback) => {
+            const parsed = Number.parseInt(value, 10);
+            return Number.isFinite(parsed) ? parsed : fallback;
+          };
+
+          setIf("texts.title", params.get("title"));
+          setIf("texts.bgName", params.get("bgName"));
+          setIf("texts.badge", params.get("badge"));
+          setIf("rabbitUrl", params.get("rabbitUrl"));
+          setIf("palette.bg", params.get("bg"));
+          setIf("palette.green", params.get("green"));
+          setIf("palette.greenDim", params.get("greenDim"));
+          setIf("palette.bgGradient", params.get("bgGradient"));
+          setIf("overlays.overlayOpacity", toFloat(params.get("overlayOpacity"), undefined));
+          setIf("overlays.glitchOpacity", toFloat(params.get("glitchOpacity"), undefined));
+          setIf("matrix.chars", params.get("chars"));
+          setIf("matrix.columnWidth", toInt(params.get("columnWidth"), undefined));
+          setIf("matrix.fontSize", toInt(params.get("matrixFont"), undefined));
+          setIf("matrix.fadeAlpha", toFloat(params.get("fade"), undefined));
+          setIf("matrix.resetChance", toFloat(params.get("resetChance"), undefined));
+          setIf("sentinels.max", toInt(params.get("sentinels"), undefined));
+          setIf("sentinels.spawnIntervalMs", toInt(params.get("spawnMs"), undefined));
+          setIf("rabbit.speed", toFloat(params.get("rabbitSpeed"), undefined));
+          setIf("rabbit.scale", toFloat(params.get("rabbitScale"), undefined));
+          setIf("rabbit.hopAmplitude", toFloat(params.get("hop"), undefined));
+          setIf("stats.fontSize", toInt(params.get("statsFont"), undefined));
+          setIf("stats.color", params.get("statsColor"));
+          const interactions = params.get("interactions");
+          if (interactions === "0" || interactions === "1") {
+            setIf("interactions.enabled", interactions === "1");
+          }
+
+          return overrides;
         }
       })();
     </script>
