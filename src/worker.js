@@ -10,8 +10,16 @@
 
 export default {
   async fetch(request, env, ctx) {
-    // Minimal Matrix-rain page, no external assets.
-    const html = `<!doctype html>
+    try {
+      const method = request.method.toUpperCase();
+      if (method !== "GET" && method !== "HEAD") {
+        return new Response("Method Not Allowed", {
+          status: 405,
+          headers: { allow: "GET, HEAD" }
+        });
+      }
+      // Minimal Matrix-rain page, no external assets.
+      const html = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -167,413 +175,426 @@ export default {
     <div class="glitch-layer"></div>
     <div class="badge">cloudflare worker</div>
     <script>
-      const canvas = document.getElementById("matrix");
-      const ctx = canvas.getContext("2d");
-      const bgText = document.querySelector(".bg-text");
-      const bgTextInner = document.querySelector(".bg-text-inner");
-      const bgName = document.querySelector(".bg-name");
-      const sentinelsCanvas = document.getElementById("sentinels");
-      const sentinelsCtx = sentinelsCanvas.getContext("2d");
-      const rabbitCanvas = document.getElementById("rabbit");
-      const rabbitCtx = rabbitCanvas.getContext("2d");
-      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*";
-      let width, height, columns, drops;
-      const trail = [];
-      const bursts = [];
-      // Active sentinel entities (spawned and animated each frame).
-      const sentinels = [];
-      // Rabbit sprite that hops across the screen and acts as a link target.
-      const rabbit = {
-        x: -40,
-        y: window.innerHeight - 40,
-        vx: 1.2,
-        phase: 0,
-        scale: 2.2
-      };
-      let lastSpawn = 0;
-      let kills = 0;
-      let escaped = 0;
-      let shakeTimer = 0;
-      let glitchTimer = 0;
-      const mouse = { x: 0, y: 0, active: false };
+      (() => {
+        "use strict";
 
-      // Flash/glitch feedback when a sentinel escapes off-screen.
-      function triggerEscapeEffect() {
-        document.body.classList.add("shake", "glitch");
-        clearTimeout(shakeTimer);
-        clearTimeout(glitchTimer);
-        shakeTimer = setTimeout(() => document.body.classList.remove("shake"), 420);
-        glitchTimer = setTimeout(() => document.body.classList.remove("glitch"), 520);
-      }
+        const canvas = document.getElementById("matrix");
+        const ctx = canvas && canvas.getContext ? canvas.getContext("2d") : null;
+        const bgText = document.querySelector(".bg-text");
+        const bgTextInner = document.querySelector(".bg-text-inner");
+        const bgName = document.querySelector(".bg-name");
+        const sentinelsCanvas = document.getElementById("sentinels");
+        const sentinelsCtx = sentinelsCanvas && sentinelsCanvas.getContext ? sentinelsCanvas.getContext("2d") : null;
+        const rabbitCanvas = document.getElementById("rabbit");
+        const rabbitCtx = rabbitCanvas && rabbitCanvas.getContext ? rabbitCanvas.getContext("2d") : null;
 
-      // Sync all canvases with the viewport size and device pixel ratio.
-      function resize() {
-        width = canvas.width = window.innerWidth * devicePixelRatio;
-        height = canvas.height = window.innerHeight * devicePixelRatio;
-        sentinelsCanvas.width = window.innerWidth * devicePixelRatio;
-        sentinelsCanvas.height = window.innerHeight * devicePixelRatio;
-        rabbitCanvas.width = window.innerWidth * devicePixelRatio;
-        rabbitCanvas.height = window.innerHeight * devicePixelRatio;
-        ctx.scale(devicePixelRatio, devicePixelRatio);
-        sentinelsCtx.scale(devicePixelRatio, devicePixelRatio);
-        rabbitCtx.scale(devicePixelRatio, devicePixelRatio);
-        columns = Math.floor(window.innerWidth / 14);
-        drops = Array.from({ length: columns }, () => Math.random() * window.innerHeight);
-        rabbit.y = window.innerHeight - 40;
-        fitBgText();
-      }
+        if (!canvas || !ctx || !sentinelsCanvas || !sentinelsCtx || !rabbitCanvas || !rabbitCtx) {
+          console.error("Canvas contexts are unavailable; aborting animation setup.");
+          return;
+        }
 
-      // Keep the background name text sized to fit within the viewport.
-      function fitBgText() {
-        if (!bgText || !bgTextInner) return;
-        const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
-        const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-        const maxW = Math.max(0, vw - 32);
-        const maxH = vh * 0.22;
-        const baseSize = 200;
-        bgText.style.setProperty("--bg-font-size", baseSize + "px");
-        const rect = bgTextInner.getBoundingClientRect();
-        const scale = Math.min(maxW / rect.width, maxH / rect.height, 1);
-        const nextSize = Math.max(28, baseSize * scale);
-        bgText.style.setProperty("--bg-font-size", nextSize.toFixed(2) + "px");
-      }
-
-      // Type-and-delete loop for the background name.
-      function typeBgText() {
-        if (!bgName) return;
-        const target = bgName.getAttribute("data-text") || "";
-        bgName.textContent = "";
-        let index = 0;
-        const typeNext = () => {
-          if (index < target.length) {
-            bgName.textContent += target[index];
-            index += 1;
-            fitBgText();
-            setTimeout(typeNext, 110);
-            return;
-          }
-          fitBgText();
-          setTimeout(jitterDelete, 3000 + Math.random() * 2000);
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*";
+        let width, height, columns, drops;
+        const trail = [];
+        const bursts = [];
+        // Active sentinel entities (spawned and animated each frame).
+        const sentinels = [];
+        // Rabbit sprite that hops across the screen and acts as a link target.
+        const rabbit = {
+          x: -40,
+          y: window.innerHeight - 40,
+          vx: 1.2,
+          phase: 0,
+          scale: 2.2
         };
-        const jitterDelete = () => {
-          const deleteCount = Math.max(1, Math.floor(Math.random() * target.length * 0.6));
-          let remaining = deleteCount;
-          const deleteNext = () => {
-            if (remaining > 0) {
-              bgName.textContent = bgName.textContent.slice(0, -1);
-              remaining -= 1;
+        let lastSpawn = 0;
+        let kills = 0;
+        let escaped = 0;
+        let shakeTimer = 0;
+        let glitchTimer = 0;
+        const mouse = { x: 0, y: 0, active: false };
+
+        const toNumber = (value, fallback) => (Number.isFinite(value) ? value : fallback);
+        const hitTest = (x, y, rect) =>
+          x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
+
+        // Flash/glitch feedback when a sentinel escapes off-screen.
+        function triggerEscapeEffect() {
+          document.body.classList.add("shake", "glitch");
+          clearTimeout(shakeTimer);
+          clearTimeout(glitchTimer);
+          shakeTimer = setTimeout(() => document.body.classList.remove("shake"), 420);
+          glitchTimer = setTimeout(() => document.body.classList.remove("glitch"), 520);
+        }
+
+        // Sync all canvases with the viewport size and device pixel ratio.
+        function resize() {
+          const dpr = Math.max(1, window.devicePixelRatio || 1);
+          width = canvas.width = window.innerWidth * dpr;
+          height = canvas.height = window.innerHeight * dpr;
+          sentinelsCanvas.width = window.innerWidth * dpr;
+          sentinelsCanvas.height = window.innerHeight * dpr;
+          rabbitCanvas.width = window.innerWidth * dpr;
+          rabbitCanvas.height = window.innerHeight * dpr;
+          ctx.scale(dpr, dpr);
+          sentinelsCtx.scale(dpr, dpr);
+          rabbitCtx.scale(dpr, dpr);
+          columns = Math.floor(window.innerWidth / 14);
+          drops = Array.from({ length: columns }, () => Math.random() * window.innerHeight);
+          rabbit.y = window.innerHeight - 40;
+          fitBgText();
+        }
+
+        // Keep the background name text sized to fit within the viewport.
+        function fitBgText() {
+          if (!bgText || !bgTextInner) return;
+          const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+          const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+          const maxW = Math.max(0, vw - 32);
+          const maxH = vh * 0.22;
+          const baseSize = 200;
+          bgText.style.setProperty("--bg-font-size", baseSize + "px");
+          const rect = bgTextInner.getBoundingClientRect();
+          const scale = Math.min(maxW / rect.width, maxH / rect.height, 1);
+          const nextSize = Math.max(28, baseSize * scale);
+          bgText.style.setProperty("--bg-font-size", nextSize.toFixed(2) + "px");
+        }
+
+        // Type-and-delete loop for the background name.
+        function typeBgText() {
+          if (!bgName) return;
+          const target = bgName.getAttribute("data-text") || "";
+          bgName.textContent = "";
+          let index = 0;
+          const typeNext = () => {
+            if (index < target.length) {
+              bgName.textContent += target[index];
+              index += 1;
               fitBgText();
-              setTimeout(deleteNext, 70);
+              setTimeout(typeNext, 110);
               return;
             }
-            setTimeout(retypeNext, 200);
-          };
-          deleteNext();
-        };
-        const retypeNext = () => {
-          if (bgName.textContent.length < target.length) {
-            const nextChar = target[bgName.textContent.length];
-            bgName.textContent += nextChar;
             fitBgText();
-            setTimeout(retypeNext, 110);
-            return;
-          }
-          setTimeout(jitterDelete, 2500 + Math.random() * 2500);
-        };
-        setTimeout(typeNext, 400);
-      }
-
-      // Cursor trail letters that fade out over time.
-      function drawTrail() {
-        for (let i = trail.length - 1; i >= 0; i--) {
-          const p = trail[i];
-          p.life -= 0.03;
-          if (p.life <= 0) {
-            trail.splice(i, 1);
-            continue;
-          }
-          ctx.fillStyle = "rgba(0, 255, 122, " + p.life.toFixed(3) + ")";
-          ctx.font = "16px monospace";
-          ctx.fillText(p.char, p.x, p.y);
-        }
-      }
-
-      // Burst particles emitted on click.
-      function drawBursts() {
-        for (let i = bursts.length - 1; i >= 0; i--) {
-          const p = bursts[i];
-          p.life -= 0.02;
-          if (p.life <= 0) {
-            bursts.splice(i, 1);
-            continue;
-          }
-          p.vy += 0.06;
-          p.x += p.vx;
-          p.y += p.vy;
-          ctx.fillStyle = "rgba(0, 255, 122, " + p.life.toFixed(3) + ")";
-          ctx.font = "14px monospace";
-          ctx.fillText(p.char, p.x, p.y);
-        }
-      }
-
-      // Spawn and render sentinel enemies, with HP bars on tougher ones.
-      function drawSentinels(now) {
-        sentinelsCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-        const maxSentinels = 8;
-        if (now - lastSpawn > 900 && sentinels.length < maxSentinels) {
-          lastSpawn = now;
-          const dir = Math.random() > 0.5 ? 1 : -1;
-          const scale = 2 + Math.random() * 2;
-          const speedRoll = Math.random();
-          const baseSpeed =
-            speedRoll < 0.6 ? 2.4 + Math.random() * 2.2 :
-            speedRoll < 0.85 ? 0.7 + Math.random() * 0.9 :
-            0.2 + Math.random() * 0.4;
-          const hp = speedRoll < 0.85 ? 1 : 5;
-          sentinels.push({
-            x: dir > 0 ? -40 : window.innerWidth + 40,
-            y: Math.random() * window.innerHeight * 0.9 + 20,
-            vx: dir * baseSpeed,
-            vy: (Math.random() - 0.5) * 0.2,
-            wobble: Math.random() * Math.PI * 2,
-            scale,
-            life: 1,
-            w: 8 * scale,
-            h: 8 * scale,
-            hp,
-            maxHp: hp
-          });
+            setTimeout(jitterDelete, 3000 + Math.random() * 2000);
+          };
+          const jitterDelete = () => {
+            const deleteCount = Math.max(1, Math.floor(Math.random() * target.length * 0.6));
+            let remaining = deleteCount;
+            const deleteNext = () => {
+              if (remaining > 0) {
+                bgName.textContent = bgName.textContent.slice(0, -1);
+                remaining -= 1;
+                fitBgText();
+                setTimeout(deleteNext, 70);
+                return;
+              }
+              setTimeout(retypeNext, 200);
+            };
+            deleteNext();
+          };
+          const retypeNext = () => {
+            if (bgName.textContent.length < target.length) {
+              const nextChar = target[bgName.textContent.length];
+              bgName.textContent += nextChar;
+              fitBgText();
+              setTimeout(retypeNext, 110);
+              return;
+            }
+            setTimeout(jitterDelete, 2500 + Math.random() * 2500);
+          };
+          setTimeout(typeNext, 400);
         }
 
-        for (let i = sentinels.length - 1; i >= 0; i--) {
-          const s = sentinels[i];
-          s.wobble += 0.02;
-          s.y += s.vy + Math.sin(s.wobble) * 0.2;
-          s.x += s.vx;
-          if (s.x < -80 || s.x > window.innerWidth + 80) {
-            sentinels.splice(i, 1);
-            escaped++;
-            triggerEscapeEffect();
-            continue;
+        // Cursor trail letters that fade out over time.
+        function drawTrail() {
+          for (let i = trail.length - 1; i >= 0; i--) {
+            const p = trail[i];
+            p.life -= 0.03;
+            if (p.life <= 0) {
+              trail.splice(i, 1);
+              continue;
+            }
+            ctx.fillStyle = "rgba(0, 255, 122, " + p.life.toFixed(3) + ")";
+            ctx.font = "16px monospace";
+            ctx.fillText(p.char, p.x, p.y);
           }
-          const px = s.x;
-          const py = s.y;
-          const unit = s.scale;
+        }
 
-          // Pixelated "sentinel" silhouette.
+        // Burst particles emitted on click.
+        function drawBursts() {
+          for (let i = bursts.length - 1; i >= 0; i--) {
+            const p = bursts[i];
+            p.life -= 0.02;
+            if (p.life <= 0) {
+              bursts.splice(i, 1);
+              continue;
+            }
+            p.vy += 0.06;
+            p.x += p.vx;
+            p.y += p.vy;
+            ctx.fillStyle = "rgba(0, 255, 122, " + p.life.toFixed(3) + ")";
+            ctx.font = "14px monospace";
+            ctx.fillText(p.char, p.x, p.y);
+          }
+        }
+
+        // Spawn and render sentinel enemies, with HP bars on tougher ones.
+        function drawSentinels(now) {
+          sentinelsCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+          const maxSentinels = 8;
+          if (now - lastSpawn > 900 && sentinels.length < maxSentinels) {
+            lastSpawn = now;
+            const dir = Math.random() > 0.5 ? 1 : -1;
+            const scale = 2 + Math.random() * 2;
+            const speedRoll = Math.random();
+            const baseSpeed =
+              speedRoll < 0.6 ? 2.4 + Math.random() * 2.2 :
+              speedRoll < 0.85 ? 0.7 + Math.random() * 0.9 :
+              0.2 + Math.random() * 0.4;
+            const hp = speedRoll < 0.85 ? 1 : 5;
+            sentinels.push({
+              x: dir > 0 ? -40 : window.innerWidth + 40,
+              y: Math.random() * window.innerHeight * 0.9 + 20,
+              vx: dir * baseSpeed,
+              vy: (Math.random() - 0.5) * 0.2,
+              wobble: Math.random() * Math.PI * 2,
+              scale,
+              life: 1,
+              w: 8 * scale,
+              h: 8 * scale,
+              hp,
+              maxHp: hp
+            });
+          }
+
+          for (let i = sentinels.length - 1; i >= 0; i--) {
+            const s = sentinels[i];
+            s.wobble += 0.02;
+            s.y += s.vy + Math.sin(s.wobble) * 0.2;
+            s.x += s.vx;
+            if (s.x < -80 || s.x > window.innerWidth + 80) {
+              sentinels.splice(i, 1);
+              escaped++;
+              triggerEscapeEffect();
+              continue;
+            }
+            const px = s.x;
+            const py = s.y;
+            const unit = s.scale;
+
+            // Pixelated "sentinel" silhouette.
+            const pattern = [
+              "00111100",
+              "01111110",
+              "11100111",
+              "11011011",
+              "11111111",
+              "01111110",
+              "00111100",
+              "00011000"
+            ];
+            sentinelsCtx.fillStyle = "rgba(0, 255, 122, 0.18)";
+            sentinelsCtx.shadowColor = "rgba(0, 255, 122, 0.5)";
+            sentinelsCtx.shadowBlur = 10;
+            for (let y = 0; y < pattern.length; y++) {
+              for (let x = 0; x < pattern[y].length; x++) {
+                if (pattern[y][x] === "1") {
+                  sentinelsCtx.fillRect(px + x * unit, py + y * unit, unit, unit);
+                }
+              }
+            }
+            // Tentacles trailing behind the sentinel.
+            sentinelsCtx.shadowBlur = 6;
+            sentinelsCtx.strokeStyle = "rgba(0, 255, 122, 0.22)";
+            sentinelsCtx.lineWidth = Math.max(1, unit / 2);
+            const tailDir = s.vx > 0 ? -1 : 1;
+            for (let t = 0; t < 5; t++) {
+              const startX = px + (pattern[0].length * unit) / 2 + t * unit * 0.6;
+              const startY = py + pattern.length * unit - unit;
+              sentinelsCtx.beginPath();
+              sentinelsCtx.moveTo(startX, startY);
+              let cx = startX;
+              let cy = startY;
+              for (let seg = 0; seg < 6; seg++) {
+                cx += tailDir * (2 + seg) * unit * 0.7;
+                cy += (Math.sin(s.wobble + seg * 0.7 + t) * unit) + unit * 0.6;
+                sentinelsCtx.lineTo(cx, cy);
+              }
+              sentinelsCtx.stroke();
+            }
+            if (s.maxHp > 1) {
+              const barW = s.w;
+              const barH = Math.max(2, unit / 2);
+              const barX = px;
+              const barY = py - barH - 3;
+              sentinelsCtx.fillStyle = "rgba(0, 0, 0, 0.5)";
+              sentinelsCtx.fillRect(barX, barY, barW, barH);
+              sentinelsCtx.fillStyle = "rgba(0, 255, 122, 0.7)";
+              sentinelsCtx.fillRect(barX, barY, barW * (s.hp / s.maxHp), barH);
+            }
+            sentinelsCtx.shadowBlur = 0;
+          }
+        }
+
+        // Animate and draw the rabbit sprite, plus update its hitbox.
+        function drawRabbit() {
+          rabbitCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+          rabbit.phase += 0.12;
+          rabbit.x += rabbit.vx;
+          if (rabbit.x > window.innerWidth + 40) {
+            rabbit.x = -60;
+          }
+          const hop = Math.abs(Math.sin(rabbit.phase)) * 10;
+          const px = rabbit.x;
+          const py = rabbit.y - hop;
+          const unit = rabbit.scale;
           const pattern = [
+            "00100100",
+            "00100100",
             "00111100",
             "01111110",
-            "11100111",
-            "11011011",
+            "11111111",
+            "11111111",
+            "11111111",
             "11111111",
             "01111110",
-            "00111100",
-            "00011000"
+            "01111110",
+            "00100100"
           ];
-          sentinelsCtx.fillStyle = "rgba(0, 255, 122, 0.18)";
-          sentinelsCtx.shadowColor = "rgba(0, 255, 122, 0.5)";
-          sentinelsCtx.shadowBlur = 10;
+          rabbitCtx.fillStyle = "rgba(230, 255, 255, 0.9)";
           for (let y = 0; y < pattern.length; y++) {
             for (let x = 0; x < pattern[y].length; x++) {
               if (pattern[y][x] === "1") {
-                sentinelsCtx.fillRect(px + x * unit, py + y * unit, unit, unit);
+                rabbitCtx.fillRect(px + x * unit, py + y * unit, unit, unit);
               }
             }
           }
-          // Tentacles trailing behind the sentinel.
-          sentinelsCtx.shadowBlur = 6;
-          sentinelsCtx.strokeStyle = "rgba(0, 255, 122, 0.22)";
-          sentinelsCtx.lineWidth = Math.max(1, unit / 2);
-          const tailDir = s.vx > 0 ? -1 : 1;
-          for (let t = 0; t < 5; t++) {
-            const startX = px + (pattern[0].length * unit) / 2 + t * unit * 0.6;
-            const startY = py + pattern.length * unit - unit;
-            sentinelsCtx.beginPath();
-            sentinelsCtx.moveTo(startX, startY);
-            let cx = startX;
-            let cy = startY;
-            for (let seg = 0; seg < 6; seg++) {
-              cx += tailDir * (2 + seg) * unit * 0.7;
-              cy += (Math.sin(s.wobble + seg * 0.7 + t) * unit) + unit * 0.6;
-              sentinelsCtx.lineTo(cx, cy);
+          // Eyes and tail.
+          rabbitCtx.fillStyle = "rgba(20, 25, 20, 0.9)";
+          rabbitCtx.fillRect(px + unit * 3, py + unit * 4, unit, unit);
+          rabbitCtx.fillRect(px + unit * 5, py + unit * 4, unit, unit);
+          rabbitCtx.fillStyle = "rgba(230, 255, 255, 0.9)";
+          rabbitCtx.fillRect(px + unit * 7, py + unit * 7, unit, unit);
+
+          rabbit.hit = {
+            x: px,
+            y: py,
+            w: pattern[0].length * unit,
+            h: pattern.length * unit
+          };
+        }
+
+        // Main animation loop: matrix rain, sentinels, rabbit, and effects.
+        function draw() {
+          const now = performance.now();
+          ctx.fillStyle = "rgba(5, 10, 8, 0.08)";
+          ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+          ctx.fillStyle = "#00ff7a";
+          ctx.font = "14px monospace";
+          for (let i = 0; i < drops.length; i++) {
+            const char = chars[Math.floor(Math.random() * chars.length)];
+            const x = i * 14;
+            const y = drops[i] * 14;
+            ctx.fillText(char, x, y);
+            if (y > window.innerHeight && Math.random() > 0.975) {
+              drops[i] = 0;
             }
-            sentinelsCtx.stroke();
+            drops[i]++;
           }
-          if (s.maxHp > 1) {
-            const barW = s.w;
-            const barH = Math.max(2, unit / 2);
-            const barX = px;
-            const barY = py - barH - 3;
-            sentinelsCtx.fillStyle = "rgba(0, 0, 0, 0.5)";
-            sentinelsCtx.fillRect(barX, barY, barW, barH);
-            sentinelsCtx.fillStyle = "rgba(0, 255, 122, 0.7)";
-            sentinelsCtx.fillRect(barX, barY, barW * (s.hp / s.maxHp), barH);
-          }
-          sentinelsCtx.shadowBlur = 0;
+          drawSentinels(now);
+          drawRabbit();
+          drawTrail();
+          drawBursts();
+          ctx.fillStyle = "rgba(0, 255, 122, 0.7)";
+          ctx.font = "12px monospace";
+          ctx.fillText("Sentinels killed: " + kills, 16, window.innerHeight - 16);
+          ctx.fillText("Sentinels escaped: " + escaped, 16, window.innerHeight - 32);
+          requestAnimationFrame(draw);
         }
-      }
 
-      // Animate and draw the rabbit sprite, plus update its hitbox.
-      function drawRabbit() {
-        rabbitCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-        rabbit.phase += 0.12;
-        rabbit.x += rabbit.vx;
-        if (rabbit.x > window.innerWidth + 40) {
-          rabbit.x = -60;
-        }
-        const hop = Math.abs(Math.sin(rabbit.phase)) * 10;
-        const px = rabbit.x;
-        const py = rabbit.y - hop;
-        const unit = rabbit.scale;
-        const pattern = [
-          "00100100",
-          "00100100",
-          "00111100",
-          "01111110",
-          "11111111",
-          "11111111",
-          "11111111",
-          "11111111",
-          "01111110",
-          "01111110",
-          "00100100"
-        ];
-        rabbitCtx.fillStyle = "rgba(230, 255, 255, 0.9)";
-        for (let y = 0; y < pattern.length; y++) {
-          for (let x = 0; x < pattern[y].length; x++) {
-            if (pattern[y][x] === "1") {
-              rabbitCtx.fillRect(px + x * unit, py + y * unit, unit, unit);
-            }
-          }
-        }
-        // Eyes and tail.
-        rabbitCtx.fillStyle = "rgba(20, 25, 20, 0.9)";
-        rabbitCtx.fillRect(px + unit * 3, py + unit * 4, unit, unit);
-        rabbitCtx.fillRect(px + unit * 5, py + unit * 4, unit, unit);
-        rabbitCtx.fillStyle = "rgba(230, 255, 255, 0.9)";
-        rabbitCtx.fillRect(px + unit * 7, py + unit * 7, unit, unit);
-
-        rabbit.hit = {
-          x: px,
-          y: py,
-          w: pattern[0].length * unit,
-          h: pattern.length * unit
-        };
-      }
-
-      // Main animation loop: matrix rain, sentinels, rabbit, and effects.
-      function draw() {
-        const now = performance.now();
-        ctx.fillStyle = "rgba(5, 10, 8, 0.08)";
-        ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
-        ctx.fillStyle = "#00ff7a";
-        ctx.font = "14px monospace";
-        for (let i = 0; i < drops.length; i++) {
-          const char = chars[Math.floor(Math.random() * chars.length)];
-          const x = i * 14;
-          const y = drops[i] * 14;
-          ctx.fillText(char, x, y);
-          if (y > window.innerHeight && Math.random() > 0.975) {
-            drops[i] = 0;
-          }
-          drops[i]++;
-        }
-        drawSentinels(now);
-        drawRabbit();
-        drawTrail();
-        drawBursts();
-        ctx.fillStyle = "rgba(0, 255, 122, 0.7)";
-        ctx.font = "12px monospace";
-        ctx.fillText("Sentinels killed: " + kills, 16, window.innerHeight - 16);
-        ctx.fillText("Sentinels escaped: " + escaped, 16, window.innerHeight - 32);
-        requestAnimationFrame(draw);
-      }
-
-      // Track pointer movement to leave a character trail.
-      window.addEventListener("pointermove", (event) => {
-        mouse.active = true;
-        mouse.x = event.clientX;
-        mouse.y = event.clientY;
-        trail.push({
-          x: mouse.x,
-          y: mouse.y,
-          life: 0.9,
-          char: chars[Math.floor(Math.random() * chars.length)]
-        });
-        if (trail.length > 80) {
-          trail.splice(0, trail.length - 80);
-        }
-      });
-
-      // Click handler for rabbit link and sentinel hits.
-      window.addEventListener("pointerdown", (event) => {
-        if (rabbit.hit) {
-          const hit =
-            event.clientX >= rabbit.hit.x &&
-            event.clientX <= rabbit.hit.x + rabbit.hit.w &&
-            event.clientY >= rabbit.hit.y &&
-            event.clientY <= rabbit.hit.y + rabbit.hit.h;
-          if (hit) {
-            window.location.href = "https://github.com/angelcamach0";
-            return;
-          }
-        }
-        // Click to destroy sentinels.
-        for (let i = sentinels.length - 1; i >= 0; i--) {
-          const s = sentinels[i];
-          const hit =
-            event.clientX >= s.x &&
-            event.clientX <= s.x + s.w &&
-            event.clientY >= s.y &&
-            event.clientY <= s.y + s.h;
-          if (hit) {
-            s.hp -= 1;
-            if (s.hp <= 0) {
-              sentinels.splice(i, 1);
-              kills++;
-            }
-            break;
-          }
-        }
-        const count = 24;
-        for (let i = 0; i < count; i++) {
-          const angle = Math.random() * Math.PI * 2;
-          const speed = 1 + Math.random() * 2.2;
-          bursts.push({
-            x: event.clientX,
-            y: event.clientY,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed - 1.2,
+        // Track pointer movement to leave a character trail.
+        window.addEventListener("pointermove", (event) => {
+          mouse.active = true;
+          mouse.x = toNumber(event.clientX, 0);
+          mouse.y = toNumber(event.clientY, 0);
+          trail.push({
+            x: mouse.x,
+            y: mouse.y,
             life: 0.9,
             char: chars[Math.floor(Math.random() * chars.length)]
           });
-        }
-        if (bursts.length > 240) {
-          bursts.splice(0, bursts.length - 240);
-        }
-      });
+          if (trail.length > 80) {
+            trail.splice(0, trail.length - 80);
+          }
+        });
 
-      // Reset transforms then recompute sizes on resize.
-      window.addEventListener("resize", () => {
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        sentinelsCtx.setTransform(1, 0, 0, 1, 0, 0);
-        rabbitCtx.setTransform(1, 0, 0, 1, 0, 0);
-        resize();
-      });
-      if (window.visualViewport) {
-        window.visualViewport.addEventListener("resize", fitBgText);
-        window.visualViewport.addEventListener("scroll", fitBgText);
-      }
+        // Click handler for rabbit link and sentinel hits.
+        window.addEventListener("pointerdown", (event) => {
+          const clickX = toNumber(event.clientX, 0);
+          const clickY = toNumber(event.clientY, 0);
+          if (rabbit.hit && hitTest(clickX, clickY, rabbit.hit)) {
+            window.location.href = "https://github.com/angelcamach0";
+            return;
+          }
+          // Click to destroy sentinels.
+          for (let i = sentinels.length - 1; i >= 0; i--) {
+            const s = sentinels[i];
+            if (hitTest(clickX, clickY, s)) {
+              s.hp -= 1;
+              if (s.hp <= 0) {
+                sentinels.splice(i, 1);
+                kills++;
+              }
+              break;
+            }
+          }
+          const count = 24;
+          for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 1 + Math.random() * 2.2;
+            bursts.push({
+              x: clickX,
+              y: clickY,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed - 1.2,
+              life: 0.9,
+              char: chars[Math.floor(Math.random() * chars.length)]
+            });
+          }
+          if (bursts.length > 240) {
+            bursts.splice(0, bursts.length - 240);
+          }
+        });
 
-      resize();
-      typeBgText();
-      draw();
+        // Reset transforms then recompute sizes on resize.
+        window.addEventListener("resize", () => {
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          sentinelsCtx.setTransform(1, 0, 0, 1, 0, 0);
+          rabbitCtx.setTransform(1, 0, 0, 1, 0, 0);
+          resize();
+        });
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener("resize", fitBgText);
+          window.visualViewport.addEventListener("scroll", fitBgText);
+        }
+
+        try {
+          resize();
+          typeBgText();
+          draw();
+        } catch (err) {
+          console.error("Animation loop failed to start.", err);
+        }
+      })();
     </script>
   </body>
 </html>`;
-    return new Response(html, {
-      headers: { "content-type": "text/html; charset=utf-8" }
-    });
+      return new Response(html, {
+        headers: { "content-type": "text/html; charset=utf-8" }
+      });
+    } catch (err) {
+      console.error("Worker fetch failed.", err);
+      return new Response("Internal Server Error", { status: 500 });
+    }
   }
 };
