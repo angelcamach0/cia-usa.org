@@ -37,11 +37,13 @@ export default {
         height: 100vh;
         filter: blur(0.2px);
       }
+      /* Sentinel canvas layer for enemy sprites. */
       #sentinels {
         position: fixed;
         inset: 0;
         pointer-events: none;
       }
+      /* Rabbit canvas layer for the roaming link sprite. */
       #rabbit {
         position: fixed;
         inset: 0;
@@ -178,7 +180,9 @@ export default {
       let width, height, columns, drops;
       const trail = [];
       const bursts = [];
+      // Active sentinel entities (spawned and animated each frame).
       const sentinels = [];
+      // Rabbit sprite that hops across the screen and acts as a link target.
       const rabbit = {
         x: -40,
         y: window.innerHeight - 40,
@@ -193,6 +197,7 @@ export default {
       let glitchTimer = 0;
       const mouse = { x: 0, y: 0, active: false };
 
+      // Flash/glitch feedback when a sentinel escapes off-screen.
       function triggerEscapeEffect() {
         document.body.classList.add("shake", "glitch");
         clearTimeout(shakeTimer);
@@ -201,6 +206,7 @@ export default {
         glitchTimer = setTimeout(() => document.body.classList.remove("glitch"), 520);
       }
 
+      // Sync all canvases with the viewport size and device pixel ratio.
       function resize() {
         width = canvas.width = window.innerWidth * devicePixelRatio;
         height = canvas.height = window.innerHeight * devicePixelRatio;
@@ -217,6 +223,7 @@ export default {
         fitBgText();
       }
 
+      // Keep the background name text sized to fit within the viewport.
       function fitBgText() {
         if (!bgText || !bgTextInner) return;
         const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
@@ -231,6 +238,7 @@ export default {
         bgText.style.setProperty("--bg-font-size", nextSize.toFixed(2) + "px");
       }
 
+      // Type-and-delete loop for the background name.
       function typeBgText() {
         if (!bgName) return;
         const target = bgName.getAttribute("data-text") || "";
@@ -275,6 +283,7 @@ export default {
         setTimeout(typeNext, 400);
       }
 
+      // Cursor trail letters that fade out over time.
       function drawTrail() {
         for (let i = trail.length - 1; i >= 0; i--) {
           const p = trail[i];
@@ -289,6 +298,7 @@ export default {
         }
       }
 
+      // Burst particles emitted on click.
       function drawBursts() {
         for (let i = bursts.length - 1; i >= 0; i--) {
           const p = bursts[i];
@@ -306,6 +316,7 @@ export default {
         }
       }
 
+      // Spawn and render sentinel enemies, with HP bars on tougher ones.
       function drawSentinels(now) {
         sentinelsCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
         const maxSentinels = 8;
@@ -403,6 +414,7 @@ export default {
         }
       }
 
+      // Animate and draw the rabbit sprite, plus update its hitbox.
       function drawRabbit() {
         rabbitCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
         rabbit.phase += 0.12;
@@ -450,6 +462,7 @@ export default {
         };
       }
 
+      // Main animation loop: matrix rain, sentinels, rabbit, and effects.
       function draw() {
         const now = performance.now();
         ctx.fillStyle = "rgba(5, 10, 8, 0.08)";
@@ -477,6 +490,7 @@ export default {
         requestAnimationFrame(draw);
       }
 
+      // Track pointer movement to leave a character trail.
       window.addEventListener("pointermove", (event) => {
         mouse.active = true;
         mouse.x = event.clientX;
@@ -492,6 +506,7 @@ export default {
         }
       });
 
+      // Click handler for rabbit link and sentinel hits.
       window.addEventListener("pointerdown", (event) => {
         if (rabbit.hit) {
           const hit =
@@ -539,6 +554,7 @@ export default {
         }
       });
 
+      // Reset transforms then recompute sizes on resize.
       window.addEventListener("resize", () => {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         sentinelsCtx.setTransform(1, 0, 0, 1, 0, 0);
