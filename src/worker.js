@@ -30,6 +30,18 @@ export default {
           overlayOpacity: 1,
           glitchOpacity: 0.4
         },
+        features: {
+          matrix: true,
+          sentinels: true,
+          rabbit: true,
+          trail: true,
+          bursts: true,
+          bgText: true,
+          badge: true,
+          stats: true,
+          overlays: true,
+          glitch: true
+        },
         matrix: {
           chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*",
           columnWidth: 14,
@@ -286,6 +298,18 @@ export default {
             overlayOpacity: 1,
             glitchOpacity: 0.4
           },
+          features: {
+            matrix: true,
+            sentinels: true,
+            rabbit: true,
+            trail: true,
+            bursts: true,
+            bgText: true,
+            badge: true,
+            stats: true,
+            overlays: true,
+            glitch: true
+          },
           matrix: {
             chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*",
             columnWidth: 14,
@@ -396,17 +420,26 @@ export default {
         if (config.palette.bgGradient) {
           document.documentElement.style.setProperty("--bg-gradient", config.palette.bgGradient);
         }
-        document.documentElement.style.setProperty("--overlay-opacity", config.overlays.overlayOpacity);
-        document.documentElement.style.setProperty("--glitch-opacity", config.overlays.glitchOpacity);
+        const overlayOpacity = config.features.overlays ? config.overlays.overlayOpacity : 0;
+        const glitchOpacity = config.features.glitch ? config.overlays.glitchOpacity : 0;
+        document.documentElement.style.setProperty("--overlay-opacity", overlayOpacity);
+        document.documentElement.style.setProperty("--glitch-opacity", glitchOpacity);
         if (bgName) {
           bgName.setAttribute("data-text", strings.bgName);
         }
         if (badge) {
           badge.textContent = strings.badge;
         }
+        if (bgText && !config.features.bgText) {
+          bgText.style.display = "none";
+        }
+        if (badge && !config.features.badge) {
+          badge.style.display = "none";
+        }
 
         // Flash/glitch feedback when a sentinel escapes off-screen.
         function triggerEscapeEffect() {
+          if (!config.features.glitch) return;
           document.body.classList.add("shake", "glitch");
           clearTimeout(shakeTimer);
           clearTimeout(glitchTimer);
@@ -678,32 +711,44 @@ export default {
           const now = performance.now();
           ctx.fillStyle = "rgba(5, 10, 8, " + config.matrix.fadeAlpha + ")";
           ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
-          ctx.fillStyle = config.palette.green;
-          ctx.font = config.matrix.fontSize + "px monospace";
-          for (let i = 0; i < drops.length; i++) {
-            const char = chars[Math.floor(Math.random() * chars.length)];
-            const x = i * config.matrix.columnWidth;
-            const y = drops[i] * config.matrix.columnWidth;
-            ctx.fillText(char, x, y);
-            if (y > window.innerHeight && Math.random() < config.matrix.resetChance) {
-              drops[i] = 0;
+          if (config.features.matrix) {
+            ctx.fillStyle = config.palette.green;
+            ctx.font = config.matrix.fontSize + "px monospace";
+            for (let i = 0; i < drops.length; i++) {
+              const char = chars[Math.floor(Math.random() * chars.length)];
+              const x = i * config.matrix.columnWidth;
+              const y = drops[i] * config.matrix.columnWidth;
+              ctx.fillText(char, x, y);
+              if (y > window.innerHeight && Math.random() < config.matrix.resetChance) {
+                drops[i] = 0;
+              }
+              drops[i]++;
             }
-            drops[i]++;
           }
-          drawSentinels(now);
-          drawRabbit();
-          drawTrail();
-          drawBursts();
-          ctx.fillStyle = config.stats.color;
-          ctx.font = config.stats.fontSize + "px monospace";
-          ctx.fillText(strings.statsKilledLabel + ": " + kills, 16, window.innerHeight - 16);
-          ctx.fillText(strings.statsEscapedLabel + ": " + escaped, 16, window.innerHeight - 32);
+          if (config.features.sentinels) {
+            drawSentinels(now);
+          }
+          if (config.features.rabbit) {
+            drawRabbit();
+          }
+          if (config.features.trail) {
+            drawTrail();
+          }
+          if (config.features.bursts) {
+            drawBursts();
+          }
+          if (config.features.stats) {
+            ctx.fillStyle = config.stats.color;
+            ctx.font = config.stats.fontSize + "px monospace";
+            ctx.fillText(strings.statsKilledLabel + ": " + kills, 16, window.innerHeight - 16);
+            ctx.fillText(strings.statsEscapedLabel + ": " + escaped, 16, window.innerHeight - 32);
+          }
           requestAnimationFrame(draw);
         }
 
         // Track pointer movement to leave a character trail.
         window.addEventListener("pointermove", (event) => {
-          if (!config.interactions.enabled) return;
+          if (!config.interactions.enabled || !config.features.trail) return;
           mouse.active = true;
           mouse.x = toNumber(event.clientX, 0);
           mouse.y = toNumber(event.clientY, 0);
@@ -723,37 +768,41 @@ export default {
           if (!config.interactions.enabled) return;
           const clickX = toNumber(event.clientX, 0);
           const clickY = toNumber(event.clientY, 0);
-          if (rabbit.hit && hitTest(clickX, clickY, rabbit.hit)) {
+          if (config.features.rabbit && rabbit.hit && hitTest(clickX, clickY, rabbit.hit)) {
             window.location.href = config.rabbitUrl;
             return;
           }
           // Click to destroy sentinels.
-          for (let i = sentinels.length - 1; i >= 0; i--) {
-            const s = sentinels[i];
-            if (hitTest(clickX, clickY, s)) {
-              s.hp -= 1;
-              if (s.hp <= 0) {
-                sentinels.splice(i, 1);
-                kills++;
+          if (config.features.sentinels) {
+            for (let i = sentinels.length - 1; i >= 0; i--) {
+              const s = sentinels[i];
+              if (hitTest(clickX, clickY, s)) {
+                s.hp -= 1;
+                if (s.hp <= 0) {
+                  sentinels.splice(i, 1);
+                  kills++;
+                }
+                break;
               }
-              break;
             }
           }
-          const count = config.bursts.count;
-          for (let i = 0; i < count; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = 1 + Math.random() * 2.2;
-            bursts.push({
-              x: clickX,
-              y: clickY,
-              vx: Math.cos(angle) * speed,
-              vy: Math.sin(angle) * speed - 1.2,
-              life: 0.9,
-              char: chars[Math.floor(Math.random() * chars.length)]
-            });
-          }
-          if (bursts.length > config.bursts.max) {
-            bursts.splice(0, bursts.length - config.bursts.max);
+          if (config.features.bursts) {
+            const count = config.bursts.count;
+            for (let i = 0; i < count; i++) {
+              const angle = Math.random() * Math.PI * 2;
+              const speed = 1 + Math.random() * 2.2;
+              bursts.push({
+                x: clickX,
+                y: clickY,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - 1.2,
+                life: 0.9,
+                char: chars[Math.floor(Math.random() * chars.length)]
+              });
+            }
+            if (bursts.length > config.bursts.max) {
+              bursts.splice(0, bursts.length - config.bursts.max);
+            }
           }
         });
 
@@ -862,6 +911,24 @@ export default {
           const interactions = params.get("interactions");
           if (interactions === "0" || interactions === "1") {
             setIf("interactions.enabled", interactions === "1");
+          }
+          const featureKeys = [
+            "matrix",
+            "sentinels",
+            "rabbit",
+            "trail",
+            "bursts",
+            "bgText",
+            "badge",
+            "stats",
+            "overlays",
+            "glitch"
+          ];
+          for (const key of featureKeys) {
+            const value = params.get(key);
+            if (value === "0" || value === "1") {
+              setIf("features." + key, value === "1");
+            }
           }
 
           return { config: configOverrides, strings: stringOverrides };

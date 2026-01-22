@@ -38,6 +38,7 @@ You can copy these defaults into your own files and adjust them:
 ```json
 {
   "rabbitUrl": "https://github.com/angelcamach0",
+  "features": { "matrix": true, "sentinels": true, "rabbit": true },
   "matrix": { "columnWidth": 12, "fontSize": 14, "fadeAlpha": 0.08 },
   "sentinels": { "max": 6, "spawnIntervalMs": 900 },
   "interactions": { "enabled": true }
@@ -86,6 +87,7 @@ Supported params:
 - `rabbitSpeed`, `rabbitScale`, `hop`
 - `statsFont`, `statsColor`
 - `interactions` (`1` or `0`)
+- Feature toggles (`1` or `0`): `matrix`, `sentinels`, `rabbit`, `trail`, `bursts`, `bgText`, `badge`, `stats`, `overlays`, `glitch`
 
 ## Reliability and safety notes
 
