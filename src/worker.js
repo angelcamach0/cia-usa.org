@@ -17,6 +17,8 @@ import appTheme from "./app/theme.js.txt";
 import appTitle from "./app/title.js.txt";
 import appMenu from "./app/menu.js.txt";
 import appScene from "./app/scene.js.txt";
+import defaultConfigJson from "./config/default-config.json.txt";
+import defaultStringsJson from "./config/default-strings.json.txt";
 
 
 export default {
@@ -29,88 +31,12 @@ export default {
           headers: { allow: "GET, HEAD" }
         });
       }
-      // Default configuration for visuals and behaviors.
+      // Default configuration for visuals and behaviors (loaded from config assets).
       // Override with the APP_CONFIG environment variable (JSON string).
-      const defaultConfig = {
-        rabbitUrl: "https://github.com/angelcamach0",
-        palette: {
-          bg: "#050a08",
-          green: "#00ff7a",
-          greenDim: "#0b3d2a",
-          bgGradient: "radial-gradient(1200px 800px at 70% 20%, #092015 0%, var(--bg) 60%)"
-        },
-        overlays: {
-          overlayOpacity: 1,
-          glitchOpacity: 0.4
-        },
-        features: {
-          matrix: true,
-          sentinels: true,
-          rabbit: true,
-          trail: true,
-          bursts: true,
-          bgText: true,
-          badge: true,
-          stats: true,
-          overlays: true,
-          glitch: true
-        },
-        matrix: {
-          chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*",
-          columnWidth: 14,
-          fontSize: 14,
-          fadeAlpha: 0.08,
-          resetChance: 0.025
-        },
-        trail: {
-          fontSize: 16,
-          max: 80
-        },
-        bursts: {
-          fontSize: 14,
-          count: 24,
-          max: 240
-        },
-        sentinels: {
-          max: 8,
-          spawnIntervalMs: 900,
-          speedThresholds: { fast: 0.6, mid: 0.85 },
-          speedRanges: {
-            fast: { min: 2.4, extra: 2.2 },
-            mid: { min: 0.7, extra: 0.9 },
-            slow: { min: 0.2, extra: 0.4 }
-          },
-          scaleRange: { min: 2, extra: 2 },
-          wobbleAmplitude: 0.2,
-          toughHp: 5
-        },
-        rabbit: {
-          speed: 1.2,
-          scale: 2.2,
-          hopAmplitude: 10,
-          phaseStep: 0.12,
-          yOffset: 40,
-          wrapRight: 40,
-          wrapLeft: -60
-        },
-        stats: {
-          fontSize: 12,
-          color: "rgba(0, 255, 122, 0.7)"
-        },
-        interactions: {
-          enabled: true
-        }
-      };
-      // Default text labels for the UI.
-      // Override with the APP_STRINGS environment variable (JSON string).
+      const defaultConfig = parseJson(resolveText(defaultConfigJson));
       // Default labels used for the tab title, background name, and UI text.
-      const defaultStrings = {
-        title: "angelcamach0",
-        bgName: "angelcamach0",
-        badge: "cloudflare worker",
-        statsKilledLabel: "Sentinels killed",
-        statsEscapedLabel: "Sentinels escaped"
-      };
+      // Override with the APP_STRINGS environment variable (JSON string).
+      const defaultStrings = parseJson(resolveText(defaultStringsJson));
       // Allow non-developers to customize the site without editing code.
       const appConfig = mergeDeep({}, defaultConfig, parseJson(env.APP_CONFIG));
       const appStrings = mergeDeep({}, defaultStrings, parseJson(env.APP_STRINGS));

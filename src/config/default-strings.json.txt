@@ -1,0 +1,7 @@
+{
+  "title": "angelcamach0",
+  "bgName": "angelcamach0",
+  "badge": "cloudflare worker",
+  "statsKilledLabel": "Sentinels killed",
+  "statsEscapedLabel": "Sentinels escaped"
+}
