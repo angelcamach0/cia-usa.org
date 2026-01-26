@@ -30,6 +30,30 @@ npm run deploy
 - `strings.json` controls every word that appears on the page (title, badge, labels).
 - `theme.css` holds CSS variables such as colors and the background gradient.
 
+### Environment overrides (recommended for easy edits)
+
+You can override defaults without touching `src/worker.js` by setting Worker environment variables. This is the easiest way for future editors to tweak names, colors, sizes, and toggles.
+
+Precedence order:
+
+1. Code defaults in `src/worker.js`
+2. Environment overrides (`APP_CONFIG`, `APP_STRINGS`, `THEME_CSS`)
+3. URL query params (highest priority, for quick demos)
+
+Example `wrangler.jsonc`:
+```jsonc
+{
+  "vars": {
+    "APP_CONFIG": "{\"palette\":{\"bg\":\"#0b0f1a\",\"green\":\"#7cff00\"},\"matrix\":{\"fontSize\":18}}",
+    "APP_STRINGS": "{\"title\":\"My Site\",\"bgName\":\"TopDawg\",\"badge\":\"custom badge\"}"
+  }
+}
+```
+
+Notes:
+- `APP_CONFIG` and `APP_STRINGS` must be JSON strings.
+- If you set `THEME_CSS`, it completely replaces the generated theme CSS.
+
 ### Editing the endpoints
 
 You can copy these defaults into your own files and adjust them:

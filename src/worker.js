@@ -18,7 +18,9 @@ export default {
           headers: { allow: "GET, HEAD" }
         });
       }
-      const appConfig = {
+      // Default configuration for visuals and behaviors.
+      // Override with the APP_CONFIG environment variable (JSON string).
+      const defaultConfig = {
         rabbitUrl: "https://github.com/angelcamach0",
         palette: {
           bg: "#050a08",
@@ -88,22 +90,21 @@ export default {
           enabled: true
         }
       };
-      const appStrings = {
+      // Default text labels for the UI.
+      // Override with the APP_STRINGS environment variable (JSON string).
+      const defaultStrings = {
         title: "Matrix Rain",
         bgName: "angelcamach0",
         badge: "cloudflare worker",
         statsKilledLabel: "Sentinels killed",
         statsEscapedLabel: "Sentinels escaped"
       };
-      const themeCss = `:root {
-  color-scheme: dark;
-  --bg: #050a08;
-  --green: #00ff7a;
-  --green-dim: #0b3d2a;
-  --bg-gradient: radial-gradient(1200px 800px at 70% 20%, #092015 0%, var(--bg) 60%);
-  --overlay-opacity: 1;
-  --glitch-opacity: 0.4;
-}`;
+      // Allow non-developers to customize the site without editing code.
+      const appConfig = mergeDeep({}, defaultConfig, parseJson(env.APP_CONFIG));
+      const appStrings = mergeDeep({}, defaultStrings, parseJson(env.APP_STRINGS));
+      const themeCss = typeof env.THEME_CSS === "string" && env.THEME_CSS.trim()
+        ? env.THEME_CSS
+        : buildThemeCss(appConfig);
 
       const url = new URL(request.url);
       if (url.pathname === "/config.json") {
@@ -946,3 +947,49 @@ export default {
     }
   }
 };
+
+// Parse JSON from env vars, falling back to an empty object on error.
+function parseJson(value) {
+  if (typeof value !== "string" || !value.trim()) return {};
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (err) {
+    console.error("Failed to parse JSON configuration.", err);
+    return {};
+  }
+}
+
+// Deep-merge simple objects so overrides can be partial.
+function mergeDeep(target, ...sources) {
+  for (const source of sources) {
+    if (!source || typeof source !== "object") continue;
+    for (const key of Object.keys(source)) {
+      const value = source[key];
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        if (!target[key] || typeof target[key] !== "object") {
+          target[key] = {};
+        }
+        mergeDeep(target[key], value);
+      } else {
+        target[key] = value;
+      }
+    }
+  }
+  return target;
+}
+
+// Build the CSS variable theme from config when THEME_CSS is not provided.
+function buildThemeCss(config) {
+  const palette = config && config.palette ? config.palette : {};
+  const overlays = config && config.overlays ? config.overlays : {};
+  return `:root {
+  color-scheme: dark;
+  --bg: ${palette.bg || "#050a08"};
+  --green: ${palette.green || "#00ff7a"};
+  --green-dim: ${palette.greenDim || "#0b3d2a"};
+  --bg-gradient: ${palette.bgGradient || "radial-gradient(1200px 800px at 70% 20%, #092015 0%, var(--bg) 60%)"};
+  --overlay-opacity: ${Number.isFinite(overlays.overlayOpacity) ? overlays.overlayOpacity : 1};
+  --glitch-opacity: ${Number.isFinite(overlays.glitchOpacity) ? overlays.glitchOpacity : 0.4};
+}`;
+}
