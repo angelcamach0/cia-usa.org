@@ -34,12 +34,13 @@
     <div class="overlay"></div>
     <div class="glitch-layer"></div>
     <!-- Side sliding menu for live scene controls. -->
-    <button class="side-toggle" type="button">Menu</button>
+    <input class="side-toggle-input" id="menu-toggle" type="checkbox" aria-label="Toggle menu" />
+    <label class="side-toggle" for="menu-toggle">Menu</label>
     <aside class="side-panel" aria-hidden="true">
       <div class="side-panel-header">
         <!-- Applies the current menu inputs to the live scene. -->
         <button class="side-panel-apply" type="button">Implement</button>
-        <button class="side-panel-close" type="button">&lt;</button>
+        <label class="side-panel-close" for="menu-toggle" role="button" aria-label="Close menu">&lt;</label>
       </div>
       <div class="side-panel-body">
         <label class="side-panel-field">

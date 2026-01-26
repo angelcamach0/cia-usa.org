@@ -11,35 +11,21 @@ export function setupMenu({
   themeUi,
   onApply
 }) {
-  const { sideToggle, sidePanel, sidePanelClose, sidePanelApply, bgName } = elements;
+  const { sidePanel, sidePanelApply, bgName } = elements;
   let themeColor = themeState.color;
 
-  // Toggle the slide-out menu without changing any scene behavior yet.
   try {
-    if (sideToggle && sidePanel) {
-      const syncPanelState = () => {
-        sidePanel.setAttribute(
-          "aria-hidden",
-          document.body.classList.contains("menu-open") ? "false" : "true"
-        );
-      };
-      // "Menu" handle opens/closes the panel.
-      sideToggle.addEventListener("click", () => {
-        document.body.classList.toggle("menu-open");
-        syncPanelState();
-      });
-      if (sidePanelClose) {
-        // Close arrow hides the panel.
-        sidePanelClose.addEventListener("click", () => {
-          document.body.classList.remove("menu-open");
-          syncPanelState();
-        });
-      }
-      syncPanelState();
-    }
-
     // Live configuration controls (applied via the Implement button).
     if (sidePanel) {
+      const menuToggle = document.getElementById("menu-toggle");
+      if (menuToggle) {
+        // Keep ARIA state aligned with the CSS-driven checkbox toggle.
+        const syncAria = () => {
+          sidePanel.setAttribute("aria-hidden", menuToggle.checked ? "false" : "true");
+        };
+        menuToggle.addEventListener("change", syncAria);
+        syncAria();
+      }
       const titleInput = sidePanel.querySelector('input[name="title"]');
       const toggleButtons = Array.from(sidePanel.querySelectorAll("[data-toggle]"));
       const sectionToggles = Array.from(
