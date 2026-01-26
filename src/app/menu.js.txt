@@ -1,3 +1,5 @@
+/* Slide-out menu behavior and control wiring.
+   Keep UI event logic here; delegate rendering to other modules. */
 import { hsvToHex } from "./utils.js";
 import { updateThemeIndicator, updateThemeSwatch } from "./theme.js";
 

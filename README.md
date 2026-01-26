@@ -149,6 +149,10 @@ This repo is modular so each feature is easy to find and extend.
 - `src/app/utils.js.txt`: shared helpers (query parsing, merge, color math).
 - `src/config/default-config.json.txt`: default runtime settings.
 - `src/config/default-strings.json.txt`: default labels and text.
+- `docs/architecture.mmd`: mermaid flowchart of runtime flow and data paths.
+
+Notes:
+- The JSON files are served directly, so they must remain valid JSON (no comments).
 
 ### Adding or removing visual features
 

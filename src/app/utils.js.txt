@@ -1,3 +1,5 @@
+/* Shared helpers: parsing, validation, and color math.
+   Keep this module dependency-free so all features can use it. */
 export const toNumber = (value, fallback) => (Number.isFinite(value) ? value : fallback);
 
 export const hitTest = (x, y, rect) =>
@@ -128,6 +130,7 @@ const ensureNonNegative = (value, fallback) => {
   return value >= 0 ? value : fallback;
 };
 
+// Normalize config values so runtime logic stays predictable.
 export function sanitizeConfig(config) {
   if (!config || typeof config !== "object") return;
 
@@ -187,6 +190,7 @@ export function sanitizeConfig(config) {
   }
 }
 
+// Normalize strings to avoid non-string types leaking into the UI.
 export function sanitizeStrings(strings) {
   if (!strings || typeof strings !== "object") return;
   const toString = (value, fallback) =>

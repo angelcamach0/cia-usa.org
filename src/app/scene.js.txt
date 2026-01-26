@@ -1,3 +1,5 @@
+/* Canvas scene loop and interactive effects.
+   This module owns draw order, animation timing, and pointer handling. */
 import { hitTest, toNumber } from "./utils.js";
 import { themeRgba } from "./theme.js";
 

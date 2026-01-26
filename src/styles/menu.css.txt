@@ -1,3 +1,5 @@
+/* Menu UI styling and layout.
+   Keep menu visuals isolated from effects for easier re-theming. */
 /* Side handle to open the sliding customization panel. */
 .side-toggle {
   position: fixed;

@@ -1,3 +1,5 @@
+/* Background name typing and tab title cursor.
+   Keeps typography animation isolated from the scene loop. */
 export function createTitleController({ strings, elements }) {
   const { bgText, bgTextInner, bgName } = elements;
   let titleCursorTimer = 0;

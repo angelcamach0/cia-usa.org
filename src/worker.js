@@ -1,11 +1,14 @@
 /**
- * Welcome to Cloudflare Workers! This is your first worker.
+ * Worker entrypoint for serving the site and assets.
  *
- * - Run "npm run dev" in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run "npm run deploy" to publish your worker
+ * Responsibilities:
+ * - Route requests for HTML, CSS, and JS module assets.
+ * - Serve config/strings JSON with env overrides.
+ * - Generate theme CSS from config when THEME_CSS is not provided.
  *
- * Learn more at https://developers.cloudflare.com/workers/
+ * Scaling notes:
+ * - Keep this file focused on routing and serialization only.
+ * - Add new assets by importing them and mapping a route.
  */
 import htmlTemplate from "./index.html";
 import baseCss from "./styles/base.css.txt";

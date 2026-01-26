@@ -1,3 +1,5 @@
+/* App bootstrap and orchestration.
+   Wires config/strings, initializes theme, menu, title, and scene. */
 import {
   fetchJson,
   mergeDeep,

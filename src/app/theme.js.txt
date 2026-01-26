@@ -1,3 +1,5 @@
+/* Theme color helpers and CSS variable updates.
+   Centralizes color math so other modules stay clean. */
 import { hexToHsv, hexToRgb, hsvToHex } from "./utils.js";
 
 export function initThemeState(config) {

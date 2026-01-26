@@ -1,3 +1,5 @@
+/* Base layout and global resets.
+   Keep global styles minimal and reusable. */
 * {
   box-sizing: border-box;
 }

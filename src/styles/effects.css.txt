@@ -1,3 +1,5 @@
+/* Visual layers and effects styling.
+   Add new effect-related styles here to keep layering consistent. */
 canvas {
   display: block;
   width: 100vw;
