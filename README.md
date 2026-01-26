@@ -155,6 +155,12 @@ Notes:
 - The JSON files are served directly, so they must remain valid JSON (no comments).
 - The `.txt` suffix is used for HTML/CSS/JS assets so Wrangler loads them as raw text. The Worker still serves them with proper `text/html`, `text/css`, and `text/javascript` headers.
 
+## Architecture diagram
+
+```text
+docs/architecture.svg
+```
+
 ### Adding or removing visual features
 
 - Feature flags live in `config.features` (defaults in `src/config/default-config.json.txt`).
