@@ -2,6 +2,14 @@
 
 Matrix-style landing page deployed on Cloudflare Workers. It renders a canvas-based scene with matrix rain, roaming sentinels, and a hopping rabbit link, served as modular HTML/CSS/JS assets from the Worker.
 
+
+## Architecture diagram
+
+The diagram below shows how the Worker routes assets and how the client modules depend on each other. Use it as a quick map when adding new features or moving logic between modules.
+
+![Architecture diagram](https://raw.githubusercontent.com/angelcamach0/cia-usa.org/master/docs/architecture.svg)
+
+
 ## Quick start
 
 ```sh
@@ -154,12 +162,6 @@ This repo is modular so each feature is easy to find and extend.
 Notes:
 - The JSON files are served directly, so they must remain valid JSON (no comments).
 - The `.txt` suffix is used for HTML/CSS/JS assets so Wrangler loads them as raw text. The Worker still serves them with proper `text/html`, `text/css`, and `text/javascript` headers.
-
-## Architecture diagram
-
-The diagram below shows how the Worker routes assets and how the client modules depend on each other. Use it as a quick map when adding new features or moving logic between modules.
-
-![Architecture diagram](https://raw.githubusercontent.com/angelcamach0/cia-usa.org/master/docs/architecture.svg)
 
 ### Adding or removing visual features
 
