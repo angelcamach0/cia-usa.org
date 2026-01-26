@@ -325,6 +325,32 @@ export default {
         font-family: "Courier New", monospace;
         font-size: 12px;
       }
+      /* Expandable section for grouping color controls. */
+      .side-panel-section {
+        border: 1px solid rgba(0, 255, 122, 0.15);
+        background: rgba(2, 8, 6, 0.6);
+      }
+      .side-panel-section-toggle {
+        width: 100%;
+        text-align: left;
+        padding: 8px 10px;
+        border: none;
+        background: transparent;
+        color: var(--green);
+        font-family: inherit;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+      .side-panel-section-body {
+        padding: 10px;
+        display: none;
+        gap: 8px;
+        color: rgba(230, 255, 240, 0.75);
+      }
+      .side-panel-section.is-open .side-panel-section-body {
+        display: grid;
+      }
       /* Field block for text-based settings. */
       .side-panel-field {
         display: grid;
@@ -407,6 +433,12 @@ export default {
         <label class="side-panel-field">
           <input type="text" name="title" placeholder="Username" />
         </label>
+        <div class="side-panel-section" data-section="colors">
+          <button class="side-panel-section-toggle" type="button">Colors</button>
+          <div class="side-panel-section-body">
+            <span>Theme colors (coming next)</span>
+          </div>
+        </div>
         <label class="side-panel-toggle">
           <span>Matrix rain</span>
           <button class="toggle-button" type="button" data-toggle="features.matrix" aria-pressed="true">On</button>
@@ -617,6 +649,9 @@ export default {
           if (sidePanel) {
             const titleInput = sidePanel.querySelector('input[name="title"]');
             const toggleButtons = Array.from(sidePanel.querySelectorAll("[data-toggle]"));
+            const sectionToggles = Array.from(
+              sidePanel.querySelectorAll(".side-panel-section-toggle")
+            );
 
             const setToggleState = (button, isOn) => {
               button.setAttribute("aria-pressed", isOn ? "true" : "false");
@@ -640,6 +675,14 @@ export default {
               button.addEventListener("click", () => {
                 const isOn = button.getAttribute("aria-pressed") === "true";
                 setToggleState(button, !isOn);
+              });
+            });
+            sectionToggles.forEach((button) => {
+              // Expand/collapse menu sections without affecting live settings.
+              button.addEventListener("click", () => {
+                const section = button.closest(".side-panel-section");
+                if (!section) return;
+                section.classList.toggle("is-open");
               });
             });
 
