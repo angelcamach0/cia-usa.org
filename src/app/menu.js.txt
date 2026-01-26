@@ -1,0 +1,146 @@
+import { hsvToHex } from "./utils.js";
+import { updateThemeIndicator, updateThemeSwatch } from "./theme.js";
+
+export function setupMenu({
+  config,
+  strings,
+  elements,
+  themeState,
+  themeUi,
+  onApply
+}) {
+  const { sideToggle, sidePanel, sidePanelClose, sidePanelApply, bgName } = elements;
+  let themeColor = themeState.color;
+
+  // Toggle the slide-out menu without changing any scene behavior yet.
+  try {
+    if (sideToggle && sidePanel) {
+      const syncPanelState = () => {
+        sidePanel.setAttribute(
+          "aria-hidden",
+          document.body.classList.contains("menu-open") ? "false" : "true"
+        );
+      };
+      // "Menu" handle opens/closes the panel.
+      sideToggle.addEventListener("click", () => {
+        document.body.classList.toggle("menu-open");
+        syncPanelState();
+      });
+      if (sidePanelClose) {
+        // Close arrow hides the panel.
+        sidePanelClose.addEventListener("click", () => {
+          document.body.classList.remove("menu-open");
+          syncPanelState();
+        });
+      }
+      syncPanelState();
+    }
+
+    // Live configuration controls (applied via the Implement button).
+    if (sidePanel) {
+      const titleInput = sidePanel.querySelector('input[name="title"]');
+      const toggleButtons = Array.from(sidePanel.querySelectorAll("[data-toggle]"));
+      const sectionToggles = Array.from(
+        sidePanel.querySelectorAll(".side-panel-section-toggle")
+      );
+      const themePicker = sidePanel.querySelector("[data-theme-picker]");
+      const themeWheel = sidePanel.querySelector(".theme-wheel");
+      const themeIndicator = sidePanel.querySelector(".theme-wheel-indicator");
+      const themeSwatch = sidePanel.querySelector(".theme-swatch");
+      themeUi.themeWheel = themeWheel;
+      themeUi.themeIndicator = themeIndicator;
+      themeUi.themeSwatch = themeSwatch;
+      themeColor = config.palette.green || themeColor;
+
+      const setToggleState = (button, isOn) => {
+        button.setAttribute("aria-pressed", isOn ? "true" : "false");
+        button.textContent = isOn ? "On" : "Off";
+      };
+
+      const syncToggleStates = () => {
+        toggleButtons.forEach((button) => {
+          const key = button.getAttribute("data-toggle");
+          if (!key) return;
+          const value = key.split(".").reduce((acc, part) => (acc ? acc[part] : undefined), config);
+          setToggleState(button, Boolean(value));
+        });
+        // Keep the input aligned with current strings.
+        if (titleInput) {
+          titleInput.value = strings.title || "";
+        }
+        // Reflect the current palette in the theme picker.
+        themeColor = config.palette.green || themeColor;
+        updateThemeSwatch(themeSwatch, themeColor);
+        updateThemeIndicator(themeWheel, themeIndicator, themeColor);
+      };
+
+      toggleButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const isOn = button.getAttribute("aria-pressed") === "true";
+          setToggleState(button, !isOn);
+        });
+      });
+      sectionToggles.forEach((button) => {
+        // Expand/collapse menu sections without affecting live settings.
+        button.addEventListener("click", () => {
+          const section = button.closest(".side-panel-section");
+          if (!section) return;
+          section.classList.toggle("is-open");
+        });
+      });
+
+      if (themePicker && themeWheel) {
+        // Select a color by clicking the wheel (hue from angle, saturation from radius).
+        themeWheel.addEventListener("click", (event) => {
+          const rect = themeWheel.getBoundingClientRect();
+          const cx = rect.left + rect.width / 2;
+          const cy = rect.top + rect.height / 2;
+          const dx = event.clientX - cx;
+          const dy = event.clientY - cy;
+          const radius = rect.width / 2;
+          const distance = Math.min(Math.hypot(dx, dy), radius);
+          const saturation = radius > 0 ? distance / radius : 0;
+          const hue = ((Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360;
+          themeColor = hsvToHex(hue, saturation, 1);
+          updateThemeSwatch(themeSwatch, themeColor);
+          updateThemeIndicator(themeWheel, themeIndicator, themeColor);
+        });
+      }
+
+      if (sidePanelApply) {
+        // Apply the menu values to the running scene.
+        sidePanelApply.addEventListener("click", () => {
+          if (titleInput) {
+            const nextTitle = titleInput.value.trim() || strings.title;
+            strings.title = nextTitle;
+            strings.bgName = nextTitle;
+            if (bgName) {
+              bgName.setAttribute("data-text", strings.bgName);
+            }
+          }
+          toggleButtons.forEach((button) => {
+            const key = button.getAttribute("data-toggle");
+            if (!key) return;
+            const isOn = button.getAttribute("aria-pressed") === "true";
+            const parts = key.split(".");
+            let cursor = config;
+            for (let i = 0; i < parts.length - 1; i++) {
+              const part = parts[i];
+              if (!cursor[part] || typeof cursor[part] !== "object") {
+                cursor[part] = {};
+              }
+              cursor = cursor[part];
+            }
+            cursor[parts[parts.length - 1]] = isOn;
+          });
+
+          onApply({ themeColor });
+        });
+      }
+
+      syncToggleStates();
+    }
+  } catch (err) {
+    console.error("Menu setup failed; continuing without panel.", err);
+  }
+}

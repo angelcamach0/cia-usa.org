@@ -1,0 +1,201 @@
+import { fetchJson, mergeDeep, readQueryOverrides } from "./utils.js";
+import { initThemeState, applyThemeColor, setThemeCssVars } from "./theme.js";
+import { createTitleController } from "./title.js";
+import { setupMenu } from "./menu.js";
+import { createScene } from "./scene.js";
+
+(async () => {
+  "use strict";
+
+  const defaultConfig = {
+    rabbitUrl: "https://github.com/angelcamach0",
+    palette: {
+      bg: "#050a08",
+      green: "#00ff7a",
+      greenDim: "#0b3d2a",
+      bgGradient: "radial-gradient(1200px 800px at 70% 20%, #092015 0%, var(--bg) 60%)"
+    },
+    overlays: {
+      overlayOpacity: 1,
+      glitchOpacity: 0.4
+    },
+    features: {
+      matrix: true,
+      sentinels: true,
+      rabbit: true,
+      trail: true,
+      bursts: true,
+      bgText: true,
+      badge: true,
+      stats: true,
+      overlays: true,
+      glitch: true
+    },
+    matrix: {
+      chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*",
+      columnWidth: 14,
+      fontSize: 14,
+      fadeAlpha: 0.08,
+      resetChance: 0.025
+    },
+    trail: {
+      fontSize: 16,
+      max: 80
+    },
+    bursts: {
+      fontSize: 14,
+      count: 24,
+      max: 240
+    },
+    sentinels: {
+      max: 8,
+      spawnIntervalMs: 900,
+      speedThresholds: { fast: 0.6, mid: 0.85 },
+      speedRanges: {
+        fast: { min: 2.4, extra: 2.2 },
+        mid: { min: 0.7, extra: 0.9 },
+        slow: { min: 0.2, extra: 0.4 }
+      },
+      scaleRange: { min: 2, extra: 2 },
+      wobbleAmplitude: 0.2,
+      toughHp: 5
+    },
+    rabbit: {
+      speed: 1.2,
+      scale: 2.2,
+      hopAmplitude: 10,
+      phaseStep: 0.12,
+      yOffset: 40,
+      wrapRight: 40,
+      wrapLeft: -60
+    },
+    stats: {
+      fontSize: 12,
+      color: "rgba(0, 255, 122, 0.7)"
+    },
+    interactions: {
+      enabled: true
+    }
+  };
+  const defaultStrings = {
+    title: "angelcamach0",
+    bgName: "angelcamach0",
+    badge: "cloudflare worker",
+    statsKilledLabel: "Sentinels killed",
+    statsEscapedLabel: "Sentinels escaped"
+  };
+
+  const [remoteConfig, remoteStrings] = await Promise.all([
+    fetchJson("/config.json"),
+    fetchJson("/strings.json")
+  ]);
+  const queryOverrides = readQueryOverrides();
+  const config = mergeDeep({}, defaultConfig, remoteConfig, queryOverrides.config);
+  const strings = mergeDeep({}, defaultStrings, remoteStrings, queryOverrides.strings);
+
+  const elements = {
+    bgText: document.querySelector(".bg-text"),
+    bgTextInner: document.querySelector(".bg-text-inner"),
+    bgName: document.querySelector(".bg-name"),
+    badge: document.querySelector(".badge"),
+    sideToggle: document.querySelector(".side-toggle"),
+    sidePanel: document.querySelector(".side-panel"),
+    sidePanelClose: document.querySelector(".side-panel-close"),
+    sidePanelApply: document.querySelector(".side-panel-apply")
+  };
+
+  const contexts = {
+    canvas: document.getElementById("matrix"),
+    ctx: null,
+    sentinelsCanvas: document.getElementById("sentinels"),
+    sentinelsCtx: null,
+    rabbitCanvas: document.getElementById("rabbit"),
+    rabbitCtx: null
+  };
+  contexts.ctx = contexts.canvas && contexts.canvas.getContext ? contexts.canvas.getContext("2d") : null;
+  contexts.sentinelsCtx =
+    contexts.sentinelsCanvas && contexts.sentinelsCanvas.getContext
+      ? contexts.sentinelsCanvas.getContext("2d")
+      : null;
+  contexts.rabbitCtx =
+    contexts.rabbitCanvas && contexts.rabbitCanvas.getContext
+      ? contexts.rabbitCanvas.getContext("2d")
+      : null;
+
+  const titleController = createTitleController({ strings, elements });
+  const themeState = initThemeState(config);
+  const root = document.documentElement;
+  const themeUi = { themeWheel: null, themeIndicator: null, themeSwatch: null };
+
+  // Keep the tab title in sync with strings and add a blinking cursor.
+  titleController.updateDocumentTitle(true);
+  root.style.setProperty("--bg", config.palette.bg);
+  setThemeCssVars(root, themeState, config.palette.green, config.palette.greenDim);
+  if (config.palette.bgGradient) {
+    root.style.setProperty("--bg-gradient", config.palette.bgGradient);
+  }
+  const overlayOpacity = config.features.overlays ? config.overlays.overlayOpacity : 0;
+  const glitchOpacity = config.features.glitch ? config.overlays.glitchOpacity : 0;
+  root.style.setProperty("--overlay-opacity", overlayOpacity);
+  root.style.setProperty("--glitch-opacity", glitchOpacity);
+  if (elements.bgName) {
+    elements.bgName.setAttribute("data-text", strings.bgName);
+  }
+  if (elements.badge) {
+    elements.badge.textContent = strings.badge;
+  }
+  if (elements.bgText && !config.features.bgText) {
+    elements.bgText.style.display = "none";
+  }
+  if (elements.badge && !config.features.badge) {
+    elements.badge.style.display = "none";
+  }
+
+  const scene = createScene({
+    config,
+    strings,
+    contexts,
+    elements,
+    themeState,
+    fitBgText: titleController.fitBgText
+  });
+
+  setupMenu({
+    config,
+    strings,
+    elements,
+    themeState,
+    themeUi,
+    onApply: ({ themeColor }) => {
+      titleController.updateDocumentTitle(true);
+      titleController.typeBgText();
+      applyThemeColor({
+        config,
+        themeState,
+        color: themeColor,
+        root,
+        themeSwatch: themeUi.themeSwatch,
+        themeWheel: themeUi.themeWheel,
+        themeIndicator: themeUi.themeIndicator
+      });
+      // Clear any existing visuals when related features are disabled.
+      if (scene) {
+        if (!config.features.trail) {
+          scene.clearTrail();
+        }
+        if (!config.features.bursts) {
+          scene.clearBursts();
+        }
+        if (!config.features.sentinels) {
+          scene.clearSentinels();
+        }
+      }
+    }
+  });
+
+  if (scene) {
+    scene.start();
+  }
+  titleController.typeBgText();
+  titleController.startTitleCursor();
+})();

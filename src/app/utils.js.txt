@@ -1,0 +1,199 @@
+export const toNumber = (value, fallback) => (Number.isFinite(value) ? value : fallback);
+
+export const hitTest = (x, y, rect) =>
+  x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
+
+export async function fetchJson(path) {
+  try {
+    const response = await fetch(path, { cache: "no-cache" });
+    if (!response.ok) return {};
+    const data = await response.json();
+    return data && typeof data === "object" ? data : {};
+  } catch (err) {
+    console.error("Failed to load " + path + "; using defaults.", err);
+    return {};
+  }
+}
+
+export function mergeDeep(target, ...sources) {
+  for (const source of sources) {
+    if (!source || typeof source !== "object") continue;
+    for (const key of Object.keys(source)) {
+      const value = source[key];
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        if (!target[key] || typeof target[key] !== "object") {
+          target[key] = {};
+        }
+        mergeDeep(target[key], value);
+      } else {
+        target[key] = value;
+      }
+    }
+  }
+  return target;
+}
+
+export function readQueryOverrides() {
+  const params = new URLSearchParams(window.location.search);
+  const configOverrides = {};
+  const stringOverrides = {};
+  const setIf = (path, value) => {
+    if (value === null || value === undefined || value === "") return;
+    const keys = path.split(".");
+    let cursor = configOverrides;
+    for (let i = 0; i < keys.length - 1; i++) {
+      const key = keys[i];
+      if (!cursor[key] || typeof cursor[key] !== "object") cursor[key] = {};
+      cursor = cursor[key];
+    }
+    cursor[keys[keys.length - 1]] = value;
+  };
+  const setString = (key, value) => {
+    if (value === null || value === undefined || value === "") return;
+    stringOverrides[key] = value;
+  };
+  const toFloat = (value, fallback) => {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+  const toInt = (value, fallback) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
+  setString("title", params.get("title"));
+  setString("bgName", params.get("bgName"));
+  setString("badge", params.get("badge"));
+  setString("statsKilledLabel", params.get("statsKilledLabel"));
+  setString("statsEscapedLabel", params.get("statsEscapedLabel"));
+  setIf("rabbitUrl", params.get("rabbitUrl"));
+  setIf("palette.bg", params.get("bg"));
+  setIf("palette.green", params.get("green"));
+  setIf("palette.greenDim", params.get("greenDim"));
+  setIf("palette.bgGradient", params.get("bgGradient"));
+  setIf("overlays.overlayOpacity", toFloat(params.get("overlayOpacity"), undefined));
+  setIf("overlays.glitchOpacity", toFloat(params.get("glitchOpacity"), undefined));
+  setIf("matrix.chars", params.get("chars"));
+  setIf("matrix.columnWidth", toInt(params.get("columnWidth"), undefined));
+  setIf("matrix.fontSize", toInt(params.get("matrixFont"), undefined));
+  setIf("matrix.fadeAlpha", toFloat(params.get("fade"), undefined));
+  setIf("matrix.resetChance", toFloat(params.get("resetChance"), undefined));
+  setIf("sentinels.max", toInt(params.get("sentinels"), undefined));
+  setIf("sentinels.spawnIntervalMs", toInt(params.get("spawnMs"), undefined));
+  setIf("rabbit.speed", toFloat(params.get("rabbitSpeed"), undefined));
+  setIf("rabbit.scale", toFloat(params.get("rabbitScale"), undefined));
+  setIf("rabbit.hopAmplitude", toFloat(params.get("hop"), undefined));
+  setIf("stats.fontSize", toInt(params.get("statsFont"), undefined));
+  setIf("stats.color", params.get("statsColor"));
+  const interactions = params.get("interactions");
+  if (interactions === "0" || interactions === "1") {
+    setIf("interactions.enabled", interactions === "1");
+  }
+  const featureKeys = [
+    "matrix",
+    "sentinels",
+    "rabbit",
+    "trail",
+    "bursts",
+    "bgText",
+    "badge",
+    "stats",
+    "overlays",
+    "glitch"
+  ];
+  for (const key of featureKeys) {
+    const value = params.get(key);
+    if (value === "0" || value === "1") {
+      setIf("features." + key, value === "1");
+    }
+  }
+
+  return { config: configOverrides, strings: stringOverrides };
+}
+
+// Convert HSV values from the wheel into a hex color string.
+export function hsvToHex(h, s, v) {
+  const c = v * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = v - c;
+  let r = 0;
+  let g = 0;
+  let b = 0;
+
+  if (h < 60) {
+    r = c;
+    g = x;
+    b = 0;
+  } else if (h < 120) {
+    r = x;
+    g = c;
+    b = 0;
+  } else if (h < 180) {
+    r = 0;
+    g = c;
+    b = x;
+  } else if (h < 240) {
+    r = 0;
+    g = x;
+    b = c;
+  } else if (h < 300) {
+    r = x;
+    g = 0;
+    b = c;
+  } else {
+    r = c;
+    g = 0;
+    b = x;
+  }
+
+  return rgbToHex(
+    Math.round((r + m) * 255),
+    Math.round((g + m) * 255),
+    Math.round((b + m) * 255)
+  );
+}
+
+// Convert a hex color into HSV for positioning the wheel indicator.
+export function hexToHsv(hex) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return { h: 0, s: 0, v: 1 };
+  const r = rgb.r / 255;
+  const g = rgb.g / 255;
+  const b = rgb.b / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+  let h = 0;
+  if (delta !== 0) {
+    if (max === r) {
+      h = ((g - b) / delta) % 6;
+    } else if (max === g) {
+      h = (b - r) / delta + 2;
+    } else {
+      h = (r - g) / delta + 4;
+    }
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  const s = max === 0 ? 0 : delta / max;
+  return { h, s, v: max };
+}
+
+// Parse a #rrggbb string into RGB channels.
+export function hexToRgb(hex) {
+  const cleaned = hex.replace("#", "");
+  if (cleaned.length !== 6) return null;
+  const num = Number.parseInt(cleaned, 16);
+  if (!Number.isFinite(num)) return null;
+  return {
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255
+  };
+}
+
+// Format RGB channels into a #rrggbb string.
+export function rgbToHex(r, g, b) {
+  const toHex = (value) => value.toString(16).padStart(2, "0");
+  return "#" + toHex(r) + toHex(g) + toHex(b);
+}

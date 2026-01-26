@@ -11,7 +11,12 @@ import htmlTemplate from "./index.html";
 import baseCss from "./styles/base.css.txt";
 import effectsCss from "./styles/effects.css.txt";
 import menuCss from "./styles/menu.css.txt";
-import appJs from "./app.js.txt";
+import appIndex from "./app/index.js.txt";
+import appUtils from "./app/utils.js.txt";
+import appTheme from "./app/theme.js.txt";
+import appTitle from "./app/title.js.txt";
+import appMenu from "./app/menu.js.txt";
+import appScene from "./app/scene.js.txt";
 
 
 export default {
@@ -139,8 +144,33 @@ export default {
           headers: { "content-type": "text/css; charset=utf-8" }
         });
       }
-      if (url.pathname === "/app.js") {
-        return new Response(resolveText(appJs), {
+      if (url.pathname === "/app/index.js") {
+        return new Response(resolveText(appIndex), {
+          headers: { "content-type": "text/javascript; charset=utf-8" }
+        });
+      }
+      if (url.pathname === "/app/utils.js") {
+        return new Response(resolveText(appUtils), {
+          headers: { "content-type": "text/javascript; charset=utf-8" }
+        });
+      }
+      if (url.pathname === "/app/theme.js") {
+        return new Response(resolveText(appTheme), {
+          headers: { "content-type": "text/javascript; charset=utf-8" }
+        });
+      }
+      if (url.pathname === "/app/title.js") {
+        return new Response(resolveText(appTitle), {
+          headers: { "content-type": "text/javascript; charset=utf-8" }
+        });
+      }
+      if (url.pathname === "/app/menu.js") {
+        return new Response(resolveText(appMenu), {
+          headers: { "content-type": "text/javascript; charset=utf-8" }
+        });
+      }
+      if (url.pathname === "/app/scene.js") {
+        return new Response(resolveText(appScene), {
           headers: { "content-type": "text/javascript; charset=utf-8" }
         });
       }

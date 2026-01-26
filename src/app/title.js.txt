@@ -1,0 +1,101 @@
+export function createTitleController({ strings, elements }) {
+  const { bgText, bgTextInner, bgName } = elements;
+  let titleCursorTimer = 0;
+  let titleCursorVisible = true;
+  let bgTypeToken = 0;
+
+  function updateDocumentTitle(reset) {
+    const baseTitle = strings.title || document.title;
+    if (reset) {
+      titleCursorVisible = true;
+    }
+    document.title = baseTitle + (titleCursorVisible ? " █" : "");
+  }
+
+  function startTitleCursor() {
+    clearInterval(titleCursorTimer);
+    titleCursorTimer = setInterval(() => {
+      titleCursorVisible = !titleCursorVisible;
+      updateDocumentTitle(false);
+    }, 750);
+  }
+
+  // Keep the background name text sized to fit within the viewport.
+  function fitBgText() {
+    if (!bgText || !bgTextInner) return;
+    const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    const maxW = Math.max(0, vw - 32);
+    const maxH = vh * 0.22;
+    const baseSize = 200;
+    bgText.style.setProperty("--bg-font-size", baseSize + "px");
+    const rect = bgTextInner.getBoundingClientRect();
+    const scale = Math.min(maxW / rect.width, maxH / rect.height, 1);
+    const nextSize = Math.max(28, baseSize * scale);
+    bgText.style.setProperty("--bg-font-size", nextSize.toFixed(2) + "px");
+  }
+
+  // Type-and-delete loop for the background name.
+  function typeBgText() {
+    if (!bgName) return;
+    const token = ++bgTypeToken;
+    const target = bgName.getAttribute("data-text") || "";
+    bgName.textContent = "";
+    let index = 0;
+    const typeNext = () => {
+      if (token !== bgTypeToken) return;
+      if (index < target.length) {
+        bgName.textContent += target[index];
+        index += 1;
+        fitBgText();
+        setTimeout(typeNext, 110);
+        return;
+      }
+      fitBgText();
+      setTimeout(jitterDelete, 3000 + Math.random() * 2000);
+    };
+    const jitterDelete = () => {
+      if (token !== bgTypeToken) return;
+      // Randomly delete between 0 and the full length of the current text.
+      const deleteCount = Math.floor(Math.random() * (target.length + 1));
+      let remaining = deleteCount;
+      const deleteNext = () => {
+        if (token !== bgTypeToken) return;
+        if (remaining > 0) {
+          bgName.textContent = bgName.textContent.slice(0, -1);
+          remaining -= 1;
+          fitBgText();
+          setTimeout(deleteNext, 70);
+          return;
+        }
+        setTimeout(retypeNext, 200);
+      };
+      deleteNext();
+    };
+    const retypeNext = () => {
+      if (token !== bgTypeToken) return;
+      if (bgName.textContent.length < target.length) {
+        const nextChar = target[bgName.textContent.length];
+        bgName.textContent += nextChar;
+        fitBgText();
+        setTimeout(retypeNext, 110);
+        return;
+      }
+      setTimeout(jitterDelete, 2500 + Math.random() * 2500);
+    };
+    setTimeout(typeNext, 400);
+  }
+
+  function setBgName(nextName) {
+    if (!bgName) return;
+    bgName.setAttribute("data-text", nextName);
+  }
+
+  return {
+    updateDocumentTitle,
+    startTitleCursor,
+    fitBgText,
+    typeBgText,
+    setBgName
+  };
+}

@@ -1,0 +1,82 @@
+import { hexToHsv, hexToRgb, hsvToHex } from "./utils.js";
+
+export function initThemeState(config) {
+  const baseColor = (config && config.palette && config.palette.green) || "#00ff7a";
+  return {
+    color: baseColor,
+    rgb: hexToRgb(baseColor) || { r: 0, g: 255, b: 122 }
+  };
+}
+
+export function updateThemeSwatch(themeSwatch, color) {
+  if (themeSwatch) {
+    themeSwatch.style.background = color;
+  }
+}
+
+export function updateThemeIndicator(themeWheel, themeIndicator, color) {
+  if (!themeWheel || !themeIndicator) return;
+  const { h, s } = hexToHsv(color);
+  const rect = themeWheel.getBoundingClientRect();
+  const radius = rect.width / 2;
+  const angle = (h * Math.PI) / 180;
+  const dist = radius * s;
+  const x = radius + Math.cos(angle) * dist;
+  const y = radius + Math.sin(angle) * dist;
+  themeIndicator.style.left = x.toFixed(2) + "px";
+  themeIndicator.style.top = y.toFixed(2) + "px";
+}
+
+// Update CSS theme variables, including softer fills for menu UI.
+export function setThemeCssVars(root, themeState, color, dimColor) {
+  root.style.setProperty("--green", color);
+  root.style.setProperty("--green-dim", dimColor);
+  const rgb = hexToRgb(color);
+  if (rgb) {
+    themeState.rgb = rgb;
+    root.style.setProperty("--green-rgb", rgb.r + ", " + rgb.g + ", " + rgb.b);
+    // Theme-tinted fills for menu backgrounds and controls.
+    root.style.setProperty(
+      "--green-soft",
+      "rgba(" + rgb.r + ", " + rgb.g + ", " + rgb.b + ", 0.12)"
+    );
+    root.style.setProperty(
+      "--green-soft-weak",
+      "rgba(" + rgb.r + ", " + rgb.g + ", " + rgb.b + ", 0.08)"
+    );
+    root.style.setProperty(
+      "--green-soft-strong",
+      "rgba(" + rgb.r + ", " + rgb.g + ", " + rgb.b + ", 0.2)"
+    );
+  }
+}
+
+export function applyThemeColor({ config, themeState, color, root, themeSwatch, themeWheel, themeIndicator }) {
+  if (!color) return;
+  const hsv = hexToHsv(color);
+  const dimColor = hsvToHex(hsv.h, Math.min(1, hsv.s * 0.8), Math.max(0, hsv.v * 0.35));
+  config.palette.green = color;
+  config.palette.greenDim = dimColor;
+  themeState.color = color;
+  setThemeCssVars(root, themeState, color, dimColor);
+  if (themeState.rgb) {
+    config.stats.color =
+      "rgba(" + themeState.rgb.r + ", " + themeState.rgb.g + ", " + themeState.rgb.b + ", 0.7)";
+  }
+  updateThemeSwatch(themeSwatch, color);
+  updateThemeIndicator(themeWheel, themeIndicator, color);
+}
+
+export function themeRgba(themeState, alpha) {
+  return (
+    "rgba(" +
+    themeState.rgb.r +
+    ", " +
+    themeState.rgb.g +
+    ", " +
+    themeState.rgb.b +
+    ", " +
+    alpha +
+    ")"
+  );
+}
