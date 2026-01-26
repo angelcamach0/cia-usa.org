@@ -25,6 +25,15 @@ Then open `http://localhost:8787`.
 npm run deploy
 ```
 
+## Get the template (clean download)
+
+If you want a version without docs or GitHub metadata, use the template release or branch:
+
+- Release: `template-v1.0.0` (downloadable ZIP on the Releases page).
+- Branch: `template-release` (minimal files only).
+
+These are ideal for copying and making your own without extra repo files.
+
 ## How it works
 
 - The Worker serves `src/index.html` plus modular CSS/JS assets.
@@ -212,8 +221,9 @@ Notes:
 
 ## Project files
 
-- `src/worker.js`: Cloudflare Worker and embedded page.
-- `.github/`: issue templates and pull request template.
+- `src/worker.js`: Cloudflare Worker routes and asset serving.
+- `src/index.html`: DOM shell and canvas layers.
+- `src/app/*`: client modules (menu, scene, theme, title, utils).
 
 ## License
 
