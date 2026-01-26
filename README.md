@@ -1,6 +1,6 @@
 # misty-meadow-70ec
 
-Matrix-style landing page deployed on Cloudflare Workers. It renders a canvas-based scene with matrix rain, roaming sentinels, and a hopping rabbit link, all in a single Worker response (no external assets).
+Matrix-style landing page deployed on Cloudflare Workers. It renders a canvas-based scene with matrix rain, roaming sentinels, and a hopping rabbit link, served as modular HTML/CSS/JS assets from the Worker.
 
 ## Quick start
 
@@ -19,7 +19,7 @@ npm run deploy
 
 ## How it works
 
-- The Worker returns one HTML document with embedded CSS and JavaScript.
+- The Worker serves `src/index.html` plus modular CSS/JS assets.
 - Three canvas layers compose the scene: matrix rain, sentinels, and the rabbit.
 - Pointer events add a trailing glyph effect and trigger click bursts.
 - A slide-out menu lets users toggle features and theme colors live.
@@ -43,11 +43,11 @@ npm run deploy
 
 ### Environment overrides (recommended for easy edits)
 
-You can override defaults without touching `src/worker.js` by setting Worker environment variables. This is the easiest way for future editors to tweak names, colors, sizes, and toggles.
+You can override defaults without touching code by setting Worker environment variables. This is the easiest way for future editors to tweak names, colors, sizes, and toggles.
 
 Precedence order:
 
-1. Code defaults in `src/worker.js`
+1. Defaults in `src/config/default-config.json.txt` and `src/config/default-strings.json.txt`
 2. Environment overrides (`APP_CONFIG`, `APP_STRINGS`, `THEME_CSS`)
 3. URL query params (highest priority, for quick demos)
 
@@ -134,38 +134,35 @@ The slide-out menu updates the live scene without a page reload. Current control
 
 ## Project structure & extension guide
 
-This repo is intentionally a single-file Worker so it can be copied and deployed easily.
+This repo is modular so each feature is easy to find and extend.
 
-- `src/worker.js` contains:
-  - Worker handler (serves `/`, `/config.json`, `/strings.json`, `/theme.css`)
-  - HTML markup for the canvases and menu
-  - CSS for layout/theme tokens and menu styling
-  - Client JS for animation, menu behavior, and theme updates
-
-Key locations (search within `src/worker.js`):
-- Defaults: `defaultConfig` and `defaultStrings` near the top of the inline `<script>`.
-- Canvas setup: look for `const canvas = document.getElementById("matrix")`.
-- Main render loop: `function draw()` and `requestAnimationFrame(draw)`.
-- Menu wiring: `sidePanelApply.addEventListener("click", ...)`.
-- Theme helpers: `applyThemeColor`, `setThemeCssVars`, `themeRgba`.
+- `src/worker.js`: routes and serves `/`, `/config.json`, `/strings.json`, `/theme.css`, and all static assets.
+- `src/index.html`: DOM markup (canvas layers, overlays, menu shell).
+- `src/styles/base.css.txt`: global layout and base styles.
+- `src/styles/effects.css.txt`: canvas layers, overlays, background name, HUD.
+- `src/styles/menu.css.txt`: slide-out menu styles and theme picker UI.
+- `src/app/index.js.txt`: app bootstrap (loads config/strings, wires modules).
+- `src/app/scene.js.txt`: animation loop + matrix/sentinels/rabbit/trails/bursts.
+- `src/app/menu.js.txt`: menu open/close + apply button behavior.
+- `src/app/theme.js.txt`: theme color helpers + CSS variable updates.
+- `src/app/title.js.txt`: tab title cursor + background name typing.
+- `src/app/utils.js.txt`: shared helpers (query parsing, merge, color math).
+- `src/config/default-config.json.txt`: default runtime settings.
+- `src/config/default-strings.json.txt`: default labels and text.
 
 ### Adding or removing visual features
 
-- Feature flags live in `config.features`.
-- Draw calls are gated in the main loop:
-  - `if (config.features.matrix) { ... }`
-  - `if (config.features.sentinels) { ... }`
-  - `if (config.features.trail) { ... }`
-  - `if (config.features.bursts) { ... }`
+- Feature flags live in `config.features` (defaults in `src/config/default-config.json.txt`).
+- Draw calls are gated in `src/app/scene.js.txt`.
 - To add a new effect:
-  1. Add a new `features.<name>` flag and defaults in `defaultConfig`.
-  2. Add a menu toggle button with `data-toggle="features.<name>"`.
-  3. Gate the draw/update logic in the `draw()` loop or event handlers.
+  1. Add a new `features.<name>` flag in `src/config/default-config.json.txt`.
+  2. Add a menu toggle button with `data-toggle="features.<name>"` in `src/index.html`.
+  3. Gate the draw/update logic in `src/app/scene.js.txt`.
 
 ### Updating theme behavior
 
 - Theme colors flow from `config.palette` into CSS variables.
-- `applyThemeColor()` updates:
+- `src/app/theme.js.txt` updates:
   - CSS vars (`--green`, `--green-dim`, `--green-rgb`, soft fills)
   - Canvas colors via `themeRgba()`
   - HUD color via `config.stats.color`
@@ -173,8 +170,8 @@ Key locations (search within `src/worker.js`):
 
 ### Rebranding or reusing the template
 
-- Update `strings.json` (or `APP_STRINGS`) for text labels.
-- Update `config.json` (or `APP_CONFIG`) for visuals and behavior.
+- Update `src/config/default-strings.json.txt` (or `APP_STRINGS`) for text labels.
+- Update `src/config/default-config.json.txt` (or `APP_CONFIG`) for visuals and behavior.
 - Replace `rabbitUrl` with your own link.
 - Deploy with `npm run deploy` after edits.
 
