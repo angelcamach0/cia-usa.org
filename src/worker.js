@@ -302,7 +302,8 @@ export default {
         transition: transform 0.3s ease;
         z-index: 8;
         display: grid;
-        grid-template-rows: auto 1fr;
+        grid-template-rows: auto minmax(0, 1fr);
+        overflow: hidden;
       }
       /* Shift the panel into view when toggled. */
       body.menu-open .side-panel {
@@ -317,6 +318,7 @@ export default {
         border-bottom: 1px solid rgba(0, 255, 122, 0.1);
       }
       /* Placeholder layout for future customization controls. */
+      /* Scrollable body so expanded sections don't push options off-screen. */
       .side-panel-body {
         padding: 14px 16px;
         display: grid;
@@ -324,6 +326,8 @@ export default {
         color: rgba(230, 255, 240, 0.9);
         font-family: "Courier New", monospace;
         font-size: 12px;
+        overflow-y: auto;
+        overscroll-behavior: contain;
       }
       /* Expandable section for grouping color controls. */
       .side-panel-section {
