@@ -549,6 +549,7 @@ export default {
         let glitchTimer = 0;
         let titleCursorTimer = 0;
         let titleCursorVisible = true;
+        let bgTypeToken = 0;
         const mouse = { x: 0, y: 0, active: false };
 
         const toNumber = (value, fallback) => (Number.isFinite(value) ? value : fallback);
@@ -637,9 +638,15 @@ export default {
             if (sidePanelApply) {
               // Apply the menu values to the running scene.
               sidePanelApply.addEventListener("click", () => {
-              if (titleInput) {
-                strings.title = titleInput.value.trim() || strings.title;
-              }
+                if (titleInput) {
+                  const nextTitle = titleInput.value.trim() || strings.title;
+                  strings.title = nextTitle;
+                  strings.bgName = nextTitle;
+                  if (bgName) {
+                    bgName.setAttribute("data-text", strings.bgName);
+                    typeBgText();
+                  }
+                }
                 toggleButtons.forEach((button) => {
                   const key = button.getAttribute("data-toggle");
                   if (!key) return;
@@ -731,10 +738,12 @@ export default {
         // Type-and-delete loop for the background name.
         function typeBgText() {
           if (!bgName) return;
+          const token = ++bgTypeToken;
           const target = bgName.getAttribute("data-text") || "";
           bgName.textContent = "";
           let index = 0;
           const typeNext = () => {
+            if (token !== bgTypeToken) return;
             if (index < target.length) {
               bgName.textContent += target[index];
               index += 1;
@@ -746,9 +755,12 @@ export default {
             setTimeout(jitterDelete, 3000 + Math.random() * 2000);
           };
           const jitterDelete = () => {
-            const deleteCount = Math.max(1, Math.floor(Math.random() * target.length * 0.6));
+            if (token !== bgTypeToken) return;
+            // Randomly delete between 0 and the full length of the current text.
+            const deleteCount = Math.floor(Math.random() * (target.length + 1));
             let remaining = deleteCount;
             const deleteNext = () => {
+              if (token !== bgTypeToken) return;
               if (remaining > 0) {
                 bgName.textContent = bgName.textContent.slice(0, -1);
                 remaining -= 1;
@@ -761,6 +773,7 @@ export default {
             deleteNext();
           };
           const retypeNext = () => {
+            if (token !== bgTypeToken) return;
             if (bgName.textContent.length < target.length) {
               const nextChar = target[bgName.textContent.length];
               bgName.textContent += nextChar;
