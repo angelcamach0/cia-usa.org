@@ -351,6 +351,14 @@ export default {
       .side-panel-section.is-open .side-panel-section-body {
         display: grid;
       }
+      .theme-color-input {
+        width: 100%;
+        height: 38px;
+        border: 1px solid rgba(0, 255, 122, 0.25);
+        background: rgba(5, 10, 8, 0.85);
+        padding: 0;
+        cursor: pointer;
+      }
       /* Field block for text-based settings. */
       .side-panel-field {
         display: grid;
@@ -436,7 +444,10 @@ export default {
         <div class="side-panel-section" data-section="colors">
           <button class="side-panel-section-toggle" type="button">Theme</button>
           <div class="side-panel-section-body">
-            <span>Theme colors (coming next)</span>
+            <label class="side-panel-field">
+              <span>Primary color</span>
+              <input class="theme-color-input" type="color" name="themeColor" value="#00ff7a" />
+            </label>
           </div>
         </div>
         <label class="side-panel-toggle">
@@ -652,6 +663,7 @@ export default {
             const sectionToggles = Array.from(
               sidePanel.querySelectorAll(".side-panel-section-toggle")
             );
+            const themeColorInput = sidePanel.querySelector("input[name=\"themeColor\"]");
 
             const setToggleState = (button, isOn) => {
               button.setAttribute("aria-pressed", isOn ? "true" : "false");
@@ -668,6 +680,10 @@ export default {
               // Keep the input aligned with current strings.
               if (titleInput) {
                 titleInput.value = strings.title || "";
+              }
+              // Reflect the current palette in the color picker.
+              if (themeColorInput) {
+                themeColorInput.value = config.palette.green || "#00ff7a";
               }
             };
 
