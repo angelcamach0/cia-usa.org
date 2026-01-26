@@ -34,6 +34,17 @@ export function createScene({ config, strings, contexts, elements, themeState, f
   let glitchTimer = 0;
   let firstFrame = true;
   const mouse = { x: 0, y: 0, active: false };
+  const getViewport = () => {
+    if (window.visualViewport) {
+      return {
+        width: window.visualViewport.width,
+        height: window.visualViewport.height,
+        offsetTop: window.visualViewport.offsetTop,
+        offsetLeft: window.visualViewport.offsetLeft
+      };
+    }
+    return { width: window.innerWidth, height: window.innerHeight, offsetTop: 0, offsetLeft: 0 };
+  };
 
   // Flash/glitch feedback when a sentinel escapes off-screen.
   function triggerEscapeEffect() {
@@ -231,19 +242,20 @@ export function createScene({ config, strings, contexts, elements, themeState, f
 
   // Sync all canvases with the viewport size and device pixel ratio.
   function resize() {
+    const viewport = getViewport();
     const dpr = Math.max(1, window.devicePixelRatio || 1);
-    width = canvas.width = window.innerWidth * dpr;
-    height = canvas.height = window.innerHeight * dpr;
-    sentinelsCanvas.width = window.innerWidth * dpr;
-    sentinelsCanvas.height = window.innerHeight * dpr;
-    rabbitCanvas.width = window.innerWidth * dpr;
-    rabbitCanvas.height = window.innerHeight * dpr;
+    width = canvas.width = viewport.width * dpr;
+    height = canvas.height = viewport.height * dpr;
+    sentinelsCanvas.width = viewport.width * dpr;
+    sentinelsCanvas.height = viewport.height * dpr;
+    rabbitCanvas.width = viewport.width * dpr;
+    rabbitCanvas.height = viewport.height * dpr;
     ctx.scale(dpr, dpr);
     sentinelsCtx.scale(dpr, dpr);
     rabbitCtx.scale(dpr, dpr);
-    columns = Math.floor(window.innerWidth / config.matrix.columnWidth);
-    drops = Array.from({ length: columns }, () => Math.random() * window.innerHeight);
-    rabbit.y = window.innerHeight - config.rabbit.yOffset;
+    columns = Math.floor(viewport.width / config.matrix.columnWidth);
+    drops = Array.from({ length: columns }, () => Math.random() * viewport.height);
+    rabbit.y = viewport.height - config.rabbit.yOffset;
     fitBgText();
   }
 
@@ -265,8 +277,9 @@ export function createScene({ config, strings, contexts, elements, themeState, f
         }
       }
     }
+    const viewport = getViewport();
     ctx.fillStyle = "rgba(5, 10, 8, " + config.matrix.fadeAlpha + ")";
-    ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+    ctx.fillRect(0, 0, viewport.width, viewport.height);
     if (config.features.matrix) {
       ctx.fillStyle = config.palette.green;
       ctx.font = config.matrix.fontSize + "px monospace";
@@ -275,7 +288,7 @@ export function createScene({ config, strings, contexts, elements, themeState, f
         const x = i * config.matrix.columnWidth;
         const y = drops[i] * config.matrix.columnWidth;
         ctx.fillText(char, x, y);
-        if (y > window.innerHeight && Math.random() < config.matrix.resetChance) {
+        if (y > viewport.height && Math.random() < config.matrix.resetChance) {
           drops[i] = 0;
         }
         drops[i]++;
@@ -296,8 +309,8 @@ export function createScene({ config, strings, contexts, elements, themeState, f
     if (config.features.stats) {
       ctx.fillStyle = config.stats.color;
       ctx.font = config.stats.fontSize + "px monospace";
-      ctx.fillText(strings.statsKilledLabel + ": " + kills, 16, window.innerHeight - 16);
-      ctx.fillText(strings.statsEscapedLabel + ": " + escaped, 16, window.innerHeight - 32);
+      ctx.fillText(strings.statsKilledLabel + ": " + kills, 16, viewport.height - 16);
+      ctx.fillText(strings.statsEscapedLabel + ": " + escaped, 16, viewport.height - 32);
     }
     requestAnimationFrame(draw);
   }
@@ -306,9 +319,10 @@ export function createScene({ config, strings, contexts, elements, themeState, f
     // Track pointer movement to leave a character trail.
     window.addEventListener("pointermove", (event) => {
       if (!config.interactions.enabled || !config.features.trail) return;
+      const viewport = getViewport();
       mouse.active = true;
-      mouse.x = toNumber(event.clientX, 0);
-      mouse.y = toNumber(event.clientY, 0);
+      mouse.x = toNumber(event.clientX + viewport.offsetLeft, 0);
+      mouse.y = toNumber(event.clientY + viewport.offsetTop, 0);
       trail.push({
         x: mouse.x,
         y: mouse.y,
@@ -323,8 +337,9 @@ export function createScene({ config, strings, contexts, elements, themeState, f
     // Click handler for rabbit link and sentinel hits.
     window.addEventListener("pointerdown", (event) => {
       if (!config.interactions.enabled) return;
-      const clickX = toNumber(event.clientX, 0);
-      const clickY = toNumber(event.clientY, 0);
+      const viewport = getViewport();
+      const clickX = toNumber(event.clientX + viewport.offsetLeft, 0);
+      const clickY = toNumber(event.clientY + viewport.offsetTop, 0);
       if (config.features.rabbit && rabbit.hit && hitTest(clickX, clickY, rabbit.hit)) {
         window.location.href = config.rabbitUrl;
         return;
@@ -396,8 +411,9 @@ export function createScene({ config, strings, contexts, elements, themeState, f
   }
 
   function clearSentinels() {
+    const viewport = getViewport();
     sentinels.length = 0;
-    sentinelsCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    sentinelsCtx.clearRect(0, 0, viewport.width, viewport.height);
   }
 
   return {

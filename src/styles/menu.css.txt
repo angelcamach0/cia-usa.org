@@ -4,8 +4,8 @@
 .side-toggle {
   position: fixed;
   left: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 20%;
+  transform: translateY(-20%);
   z-index: 7;
   border: 1px solid rgba(var(--green-rgb), 0.35);
   border-left: none;
@@ -24,8 +24,8 @@
 .side-panel {
   position: fixed;
   left: 0;
-  top: 50%;
-  transform: translate(-100%, -50%);
+  top: 20%;
+  transform: translate(-100%, -20%);
   width: min(320px, 80vw);
   height: min(360px, 70vh);
   background: rgba(2, 8, 6, 0.88);
@@ -40,7 +40,7 @@
 
 /* Shift the panel into view when toggled. */
 body.menu-open .side-panel {
-  transform: translate(0, -50%);
+  transform: translate(0, -20%);
 }
 
 /* Header row inside the panel for the close control. */
