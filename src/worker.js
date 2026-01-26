@@ -268,6 +268,118 @@ export default {
         text-shadow: 0 0 8px rgba(0,255,122,0.5);
         opacity: 0.7;
       }
+      /* Side handle to open the sliding customization panel. */
+      .side-toggle {
+        position: fixed;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 7;
+        border: 1px solid rgba(0, 255, 122, 0.35);
+        border-left: none;
+        background: rgba(5, 10, 8, 0.65);
+        color: var(--green);
+        font-family: "Courier New", monospace;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        padding: 10px 12px;
+        text-transform: uppercase;
+        cursor: pointer;
+        backdrop-filter: blur(6px);
+      }
+      /* Left-side sliding panel container (content comes later). */
+      .side-panel {
+        position: fixed;
+        left: 0;
+        top: 50%;
+        transform: translate(-100%, -50%);
+        width: min(320px, 80vw);
+        height: min(360px, 70vh);
+        background: rgba(2, 8, 6, 0.88);
+        border: 1px solid rgba(0, 255, 122, 0.2);
+        border-left: none;
+        transition: transform 0.3s ease;
+        z-index: 8;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+      /* Shift the panel into view when toggled. */
+      body.menu-open .side-panel {
+        transform: translate(0, -50%);
+      }
+      /* Header row inside the panel for the close control. */
+      .side-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(0, 255, 122, 0.1);
+      }
+      /* Placeholder layout for future customization controls. */
+      .side-panel-body {
+        padding: 14px 16px;
+        display: grid;
+        gap: 12px;
+        color: rgba(230, 255, 240, 0.9);
+        font-family: "Courier New", monospace;
+        font-size: 12px;
+      }
+      /* Field block for text-based settings. */
+      .side-panel-field {
+        display: grid;
+        gap: 6px;
+      }
+      .side-panel-field input[type="text"] {
+        width: 100%;
+        padding: 8px 10px;
+        background: rgba(5, 10, 8, 0.85);
+        border: 1px solid rgba(0, 255, 122, 0.25);
+        color: rgba(230, 255, 240, 0.95);
+        font-family: inherit;
+        font-size: 12px;
+      }
+      /* Toggle rows for future feature flags. */
+      .side-panel-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .toggle-button {
+        border: 1px solid rgba(0, 255, 122, 0.35);
+        background: rgba(0, 255, 122, 0.08);
+        color: var(--green);
+        font-family: inherit;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        padding: 4px 10px;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+      .toggle-button[aria-pressed="false"] {
+        opacity: 0.55;
+      }
+      /* Close button that slides the panel back out. */
+      .side-panel-close {
+        border: 1px solid rgba(0, 255, 122, 0.35);
+        background: rgba(0, 255, 122, 0.08);
+        color: var(--green);
+        font-family: "Courier New", monospace;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        padding: 6px 10px;
+        cursor: pointer;
+      }
+      .side-panel-apply {
+        border: 1px solid rgba(0, 255, 122, 0.35);
+        background: rgba(0, 255, 122, 0.18);
+        color: var(--green);
+        font-family: "Courier New", monospace;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        padding: 6px 10px;
+        cursor: pointer;
+      }
     </style>
   </head>
     <body>
@@ -282,6 +394,29 @@ export default {
     </div>
     <div class="overlay"></div>
     <div class="glitch-layer"></div>
+    <!-- Side sliding menu for live scene controls. -->
+    <button class="side-toggle" type="button">Menu</button>
+    <aside class="side-panel" aria-hidden="true">
+      <div class="side-panel-header">
+        <!-- Applies the current menu inputs to the live scene. -->
+        <button class="side-panel-apply" type="button">Implement</button>
+        <button class="side-panel-close" type="button">&lt;</button>
+      </div>
+      <div class="side-panel-body">
+        <label class="side-panel-field">
+          <span>Username</span>
+          <input type="text" name="title" placeholder="username" />
+        </label>
+        <label class="side-panel-toggle">
+          <span>Matrix rain</span>
+          <button class="toggle-button" type="button" data-toggle="features.matrix" aria-pressed="true">On</button>
+        </label>
+        <label class="side-panel-toggle">
+          <span>Sentinels</span>
+          <button class="toggle-button" type="button" data-toggle="features.sentinels" aria-pressed="true">On</button>
+        </label>
+      </div>
+    </aside>
     <div class="badge">cloudflare worker</div>
     <script>
       (async () => {
@@ -379,6 +514,10 @@ export default {
         const bgTextInner = document.querySelector(".bg-text-inner");
         const bgName = document.querySelector(".bg-name");
         const badge = document.querySelector(".badge");
+        const sideToggle = document.querySelector(".side-toggle");
+        const sidePanel = document.querySelector(".side-panel");
+        const sidePanelClose = document.querySelector(".side-panel-close");
+        const sidePanelApply = document.querySelector(".side-panel-apply");
         const sentinelsCanvas = document.getElementById("sentinels");
         const sentinelsCtx = sentinelsCanvas && sentinelsCanvas.getContext ? sentinelsCanvas.getContext("2d") : null;
         const rabbitCanvas = document.getElementById("rabbit");
@@ -436,6 +575,95 @@ export default {
         }
         if (badge && !config.features.badge) {
           badge.style.display = "none";
+        }
+
+        // Toggle the slide-out menu without changing any scene behavior yet.
+        try {
+          if (sideToggle && sidePanel) {
+            const syncPanelState = () => {
+              sidePanel.setAttribute(
+                "aria-hidden",
+                document.body.classList.contains("menu-open") ? "false" : "true"
+              );
+            };
+            // "Menu" handle opens/closes the panel.
+            sideToggle.addEventListener("click", () => {
+              document.body.classList.toggle("menu-open");
+              syncPanelState();
+            });
+            if (sidePanelClose) {
+              // Close arrow hides the panel.
+              sidePanelClose.addEventListener("click", () => {
+                document.body.classList.remove("menu-open");
+                syncPanelState();
+              });
+            }
+            syncPanelState();
+          }
+
+          // Live configuration controls (applied via the Implement button).
+          if (sidePanel) {
+            const titleInput = sidePanel.querySelector('input[name="title"]');
+            const toggleButtons = Array.from(sidePanel.querySelectorAll("[data-toggle]"));
+
+            const setToggleState = (button, isOn) => {
+              button.setAttribute("aria-pressed", isOn ? "true" : "false");
+              button.textContent = isOn ? "On" : "Off";
+            };
+
+            const syncToggleStates = () => {
+              toggleButtons.forEach((button) => {
+                const key = button.getAttribute("data-toggle");
+                if (!key) return;
+                const value = key.split(".").reduce((acc, part) => (acc ? acc[part] : undefined), config);
+                setToggleState(button, Boolean(value));
+              });
+              // Keep the input aligned with current strings.
+              if (titleInput) {
+                titleInput.value = strings.title || "";
+              }
+            };
+
+            toggleButtons.forEach((button) => {
+              button.addEventListener("click", () => {
+                const isOn = button.getAttribute("aria-pressed") === "true";
+                setToggleState(button, !isOn);
+              });
+            });
+
+            if (sidePanelApply) {
+              // Apply the menu values to the running scene.
+              sidePanelApply.addEventListener("click", () => {
+                if (titleInput) {
+                  strings.title = titleInput.value.trim() || strings.title;
+                }
+                toggleButtons.forEach((button) => {
+                  const key = button.getAttribute("data-toggle");
+                  if (!key) return;
+                  const isOn = button.getAttribute("aria-pressed") === "true";
+                  const parts = key.split(".");
+                  let cursor = config;
+                  for (let i = 0; i < parts.length - 1; i++) {
+                    const part = parts[i];
+                    if (!cursor[part] || typeof cursor[part] !== "object") {
+                      cursor[part] = {};
+                    }
+                    cursor = cursor[part];
+                  }
+                  cursor[parts[parts.length - 1]] = isOn;
+                });
+
+                document.title = strings.title || document.title;
+                if (!config.features.sentinels && sentinelsCtx) {
+                  sentinelsCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+                }
+              });
+            }
+
+            syncToggleStates();
+          }
+        } catch (err) {
+          console.error("Menu setup failed; continuing without panel.", err);
         }
 
         // Flash/glitch feedback when a sentinel escapes off-screen.
