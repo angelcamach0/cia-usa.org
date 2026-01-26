@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Matrix Rain</title>
+    <link rel="stylesheet" href="/theme.css" />
+    <link rel="stylesheet" href="/app.css" />
+    
+  </head>
+    <body>
+    <canvas id="matrix"></canvas>
+    <canvas id="sentinels"></canvas>
+    <canvas id="rabbit"></canvas>
+    <div class="bg-text">
+      <span class="bg-text-inner">
+        <span class="bg-name"></span>
+        <span class="bg-cursor">█</span>
+      </span>
+    </div>
+    <div class="overlay"></div>
+    <div class="glitch-layer"></div>
+    <!-- Side sliding menu for live scene controls. -->
+    <button class="side-toggle" type="button">Menu</button>
+    <aside class="side-panel" aria-hidden="true">
+      <div class="side-panel-header">
+        <!-- Applies the current menu inputs to the live scene. -->
+        <button class="side-panel-apply" type="button">Implement</button>
+        <button class="side-panel-close" type="button">&lt;</button>
+      </div>
+      <div class="side-panel-body">
+        <label class="side-panel-field">
+          <input type="text" name="title" placeholder="Username" />
+        </label>
+        <div class="side-panel-section" data-section="colors">
+          <button class="side-panel-section-toggle" type="button">Theme</button>
+          <div class="side-panel-section-body">
+            <div class="theme-picker" data-theme-picker>
+              <div class="theme-wheel" role="button" aria-label="Pick a theme color">
+                <div class="theme-wheel-indicator"></div>
+              </div>
+              <div class="theme-picker-row">
+                <span class="theme-picker-label">Selected</span>
+                <div class="theme-swatch" aria-hidden="true"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="toggle-grid">
+          <label class="side-panel-toggle">
+            <span>Matrix rain</span>
+            <button class="toggle-button" type="button" data-toggle="features.matrix" aria-pressed="true">On</button>
+          </label>
+          <label class="side-panel-toggle">
+            <span>Sentinels</span>
+            <button class="toggle-button" type="button" data-toggle="features.sentinels" aria-pressed="true">On</button>
+          </label>
+          <label class="side-panel-toggle">
+            <span>Mouse trail</span>
+            <button class="toggle-button" type="button" data-toggle="features.trail" aria-pressed="true">On</button>
+          </label>
+          <label class="side-panel-toggle">
+            <span>Click bursts</span>
+            <button class="toggle-button" type="button" data-toggle="features.bursts" aria-pressed="true">On</button>
+          </label>
+        </div>
+      </div>
+    </aside>
+    <div class="badge">cloudflare worker</div>
+    
+      <script src="/app.js" defer></script>
+  </body>
+</html>
