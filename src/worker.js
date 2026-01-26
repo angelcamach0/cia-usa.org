@@ -415,6 +415,14 @@ export default {
           <span>Sentinels</span>
           <button class="toggle-button" type="button" data-toggle="features.sentinels" aria-pressed="true">On</button>
         </label>
+        <label class="side-panel-toggle">
+          <span>Mouse trail</span>
+          <button class="toggle-button" type="button" data-toggle="features.trail" aria-pressed="true">On</button>
+        </label>
+        <label class="side-panel-toggle">
+          <span>Click bursts</span>
+          <button class="toggle-button" type="button" data-toggle="features.bursts" aria-pressed="true">On</button>
+        </label>
       </div>
     </aside>
     <div class="badge">cloudflare worker</div>
@@ -660,14 +668,21 @@ export default {
                     }
                     cursor = cursor[part];
                   }
-                  cursor[parts[parts.length - 1]] = isOn;
-                });
+                cursor[parts[parts.length - 1]] = isOn;
+              });
 
               updateDocumentTitle(true);
+              // Clear any existing visuals when related features are disabled.
+              if (!config.features.trail) {
+                trail.length = 0;
+              }
+              if (!config.features.bursts) {
+                bursts.length = 0;
+              }
               if (!config.features.sentinels && sentinelsCtx) {
                 sentinelsCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
               }
-              });
+            });
             }
 
             syncToggleStates();
