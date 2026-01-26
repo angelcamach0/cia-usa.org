@@ -351,13 +351,65 @@ export default {
       .side-panel-section.is-open .side-panel-section-body {
         display: grid;
       }
-      .theme-color-input {
-        width: 100%;
-        height: 38px;
+      /* Inline theme color wheel (no native popup). */
+      .theme-picker {
+        display: grid;
+        gap: 10px;
+      }
+      .theme-wheel {
+        position: relative;
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        margin: 0 auto;
+        background:
+          conic-gradient(
+            #ff004c,
+            #ff8a00,
+            #ffe600,
+            #7bff00,
+            #00ffb3,
+            #00b6ff,
+            #5b5bff,
+            #c100ff,
+            #ff004c
+          );
+        cursor: crosshair;
+      }
+      .theme-wheel::after {
+        content: "";
+        position: absolute;
+        inset: 20%;
+        border-radius: 50%;
+        background: rgba(2, 8, 6, 0.92);
+        box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.6);
+      }
+      .theme-wheel-indicator {
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid #ffffff;
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+      }
+      .theme-picker-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .theme-picker-label {
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: rgba(230, 255, 240, 0.7);
+      }
+      .theme-swatch {
+        width: 36px;
+        height: 18px;
         border: 1px solid rgba(0, 255, 122, 0.25);
-        background: rgba(5, 10, 8, 0.85);
-        padding: 0;
-        cursor: pointer;
+        background: #00ff7a;
       }
       /* Field block for text-based settings. */
       .side-panel-field {
@@ -444,10 +496,15 @@ export default {
         <div class="side-panel-section" data-section="colors">
           <button class="side-panel-section-toggle" type="button">Theme</button>
           <div class="side-panel-section-body">
-            <label class="side-panel-field">
-              <span>Primary color</span>
-              <input class="theme-color-input" type="color" name="themeColor" value="#00ff7a" />
-            </label>
+            <div class="theme-picker" data-theme-picker>
+              <div class="theme-wheel" role="button" aria-label="Pick a theme color">
+                <div class="theme-wheel-indicator"></div>
+              </div>
+              <div class="theme-picker-row">
+                <span class="theme-picker-label">Selected</span>
+                <div class="theme-swatch" aria-hidden="true"></div>
+              </div>
+            </div>
           </div>
         </div>
         <label class="side-panel-toggle">
@@ -601,6 +658,11 @@ export default {
         let titleCursorTimer = 0;
         let titleCursorVisible = true;
         let bgTypeToken = 0;
+        let themePicker = null;
+        let themeWheel = null;
+        let themeIndicator = null;
+        let themeSwatch = null;
+        let themeColor = "#00ff7a";
         const mouse = { x: 0, y: 0, active: false };
 
         const toNumber = (value, fallback) => (Number.isFinite(value) ? value : fallback);
@@ -663,7 +725,11 @@ export default {
             const sectionToggles = Array.from(
               sidePanel.querySelectorAll(".side-panel-section-toggle")
             );
-            const themeColorInput = sidePanel.querySelector("input[name=\"themeColor\"]");
+            themePicker = sidePanel.querySelector("[data-theme-picker]");
+            themeWheel = sidePanel.querySelector(".theme-wheel");
+            themeIndicator = sidePanel.querySelector(".theme-wheel-indicator");
+            themeSwatch = sidePanel.querySelector(".theme-swatch");
+            themeColor = config.palette.green || themeColor;
 
             const setToggleState = (button, isOn) => {
               button.setAttribute("aria-pressed", isOn ? "true" : "false");
@@ -681,10 +747,10 @@ export default {
               if (titleInput) {
                 titleInput.value = strings.title || "";
               }
-              // Reflect the current palette in the color picker.
-              if (themeColorInput) {
-                themeColorInput.value = config.palette.green || "#00ff7a";
-              }
+              // Reflect the current palette in the theme picker.
+              themeColor = config.palette.green || themeColor;
+              updateThemeSwatch(themeColor);
+              updateThemeIndicator(themeColor);
             };
 
             toggleButtons.forEach((button) => {
@@ -701,6 +767,24 @@ export default {
                 section.classList.toggle("is-open");
               });
             });
+
+            if (themePicker && themeWheel) {
+              // Select a color by clicking the wheel (hue from angle, saturation from radius).
+              themeWheel.addEventListener("click", (event) => {
+                const rect = themeWheel.getBoundingClientRect();
+                const cx = rect.left + rect.width / 2;
+                const cy = rect.top + rect.height / 2;
+                const dx = event.clientX - cx;
+                const dy = event.clientY - cy;
+                const radius = rect.width / 2;
+                const distance = Math.min(Math.hypot(dx, dy), radius);
+                const saturation = radius > 0 ? distance / radius : 0;
+                const hue = ((Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360;
+                themeColor = hsvToHex(hue, saturation, 1);
+                updateThemeSwatch(themeColor);
+                updateThemeIndicator(themeColor);
+              });
+            }
 
             if (sidePanelApply) {
               // Apply the menu values to the running scene.
@@ -727,27 +811,46 @@ export default {
                     }
                     cursor = cursor[part];
                   }
-                cursor[parts[parts.length - 1]] = isOn;
-              });
+                  cursor[parts[parts.length - 1]] = isOn;
+                });
 
-              updateDocumentTitle(true);
-              // Clear any existing visuals when related features are disabled.
-              if (!config.features.trail) {
-                trail.length = 0;
-              }
-              if (!config.features.bursts) {
-                bursts.length = 0;
-              }
-              if (!config.features.sentinels && sentinelsCtx) {
-                sentinelsCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-              }
-            });
+                updateDocumentTitle(true);
+                // Clear any existing visuals when related features are disabled.
+                if (!config.features.trail) {
+                  trail.length = 0;
+                }
+                if (!config.features.bursts) {
+                  bursts.length = 0;
+                }
+                if (!config.features.sentinels && sentinelsCtx) {
+                  sentinelsCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+                }
+              });
             }
 
-            syncToggleStates();
+          syncToggleStates();
+        }
+      } catch (err) {
+        console.error("Menu setup failed; continuing without panel.", err);
+      }
+
+        function updateThemeSwatch(color) {
+          if (themeSwatch) {
+            themeSwatch.style.background = color;
           }
-        } catch (err) {
-          console.error("Menu setup failed; continuing without panel.", err);
+        }
+
+        function updateThemeIndicator(color) {
+          if (!themeWheel || !themeIndicator) return;
+          const { h, s } = hexToHsv(color);
+          const rect = themeWheel.getBoundingClientRect();
+          const radius = rect.width / 2;
+          const angle = (h * Math.PI) / 180;
+          const dist = radius * s;
+          const x = radius + Math.cos(angle) * dist;
+          const y = radius + Math.sin(angle) * dist;
+          themeIndicator.style.left = x.toFixed(2) + "px";
+          themeIndicator.style.top = y.toFixed(2) + "px";
         }
 
         // Flash/glitch feedback when a sentinel escapes off-screen.
@@ -858,6 +961,81 @@ export default {
             setTimeout(jitterDelete, 2500 + Math.random() * 2500);
           };
           setTimeout(typeNext, 400);
+        }
+
+        // Convert HSV values from the wheel into a hex color string.
+        function hsvToHex(h, s, v) {
+          const c = v * s;
+          const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+          const m = v - c;
+          let r = 0;
+          let g = 0;
+          let b = 0;
+
+          if (h < 60) {
+            r = c; g = x; b = 0;
+          } else if (h < 120) {
+            r = x; g = c; b = 0;
+          } else if (h < 180) {
+            r = 0; g = c; b = x;
+          } else if (h < 240) {
+            r = 0; g = x; b = c;
+          } else if (h < 300) {
+            r = x; g = 0; b = c;
+          } else {
+            r = c; g = 0; b = x;
+          }
+
+          return rgbToHex(
+            Math.round((r + m) * 255),
+            Math.round((g + m) * 255),
+            Math.round((b + m) * 255)
+          );
+        }
+
+        // Convert a hex color into HSV for positioning the wheel indicator.
+        function hexToHsv(hex) {
+          const rgb = hexToRgb(hex);
+          if (!rgb) return { h: 0, s: 0, v: 1 };
+          const r = rgb.r / 255;
+          const g = rgb.g / 255;
+          const b = rgb.b / 255;
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          const delta = max - min;
+          let h = 0;
+          if (delta !== 0) {
+            if (max === r) {
+              h = ((g - b) / delta) % 6;
+            } else if (max === g) {
+              h = (b - r) / delta + 2;
+            } else {
+              h = (r - g) / delta + 4;
+            }
+            h *= 60;
+            if (h < 0) h += 360;
+          }
+          const s = max === 0 ? 0 : delta / max;
+          return { h, s, v: max };
+        }
+
+        // Parse a #rrggbb string into RGB channels.
+        function hexToRgb(hex) {
+          const cleaned = hex.replace("#", "");
+          if (cleaned.length !== 6) return null;
+          const num = Number.parseInt(cleaned, 16);
+          if (!Number.isFinite(num)) return null;
+          return {
+            r: (num >> 16) & 255,
+            g: (num >> 8) & 255,
+            b: num & 255
+          };
+        }
+
+        // Format RGB channels into a #rrggbb string.
+        function rgbToHex(r, g, b) {
+          const toHex = (value) => value.toString(16).padStart(2, "0");
+          return "#" + toHex(r) + toHex(g) + toHex(b);
         }
 
         // Cursor trail letters that fade out over time.
