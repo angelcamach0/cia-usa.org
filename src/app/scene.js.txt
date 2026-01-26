@@ -30,6 +30,7 @@ export function createScene({ config, strings, contexts, elements, themeState, f
   let escaped = 0;
   let shakeTimer = 0;
   let glitchTimer = 0;
+  let firstFrame = true;
   const mouse = { x: 0, y: 0, active: false };
 
   // Flash/glitch feedback when a sentinel escapes off-screen.
@@ -247,6 +248,21 @@ export function createScene({ config, strings, contexts, elements, themeState, f
   // Main animation loop: matrix rain, sentinels, rabbit, and effects.
   function draw() {
     const now = performance.now();
+    if (firstFrame && typeof performance !== "undefined" && performance.mark) {
+      firstFrame = false;
+      performance.mark("scene:first-frame");
+      if (performance.measure) {
+        try {
+          performance.measure(
+            "scene:boot-to-first-frame",
+            "app:init-start",
+            "scene:first-frame"
+          );
+        } catch (err) {
+          console.warn("Performance measure skipped.", err);
+        }
+      }
+    }
     ctx.fillStyle = "rgba(5, 10, 8, " + config.matrix.fadeAlpha + ")";
     ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
     if (config.features.matrix) {

@@ -111,6 +111,93 @@ export function readQueryOverrides() {
   return { config: configOverrides, strings: stringOverrides };
 }
 
+const clampNumber = (value, min, max, fallback) => {
+  if (!Number.isFinite(value)) return fallback;
+  if (value < min) return min;
+  if (value > max) return max;
+  return value;
+};
+
+const ensurePositive = (value, fallback) => {
+  if (!Number.isFinite(value)) return fallback;
+  return value > 0 ? value : fallback;
+};
+
+const ensureNonNegative = (value, fallback) => {
+  if (!Number.isFinite(value)) return fallback;
+  return value >= 0 ? value : fallback;
+};
+
+export function sanitizeConfig(config) {
+  if (!config || typeof config !== "object") return;
+
+  if (config.matrix) {
+    config.matrix.columnWidth = ensurePositive(config.matrix.columnWidth, 14);
+    config.matrix.fontSize = ensurePositive(config.matrix.fontSize, 14);
+    config.matrix.fadeAlpha = clampNumber(config.matrix.fadeAlpha, 0, 1, 0.08);
+    config.matrix.resetChance = clampNumber(config.matrix.resetChance, 0, 1, 0.025);
+  }
+  if (config.trail) {
+    config.trail.fontSize = ensurePositive(config.trail.fontSize, 16);
+    config.trail.max = ensureNonNegative(config.trail.max, 80);
+  }
+  if (config.bursts) {
+    config.bursts.fontSize = ensurePositive(config.bursts.fontSize, 14);
+    config.bursts.count = ensureNonNegative(config.bursts.count, 24);
+    config.bursts.max = ensureNonNegative(config.bursts.max, 240);
+  }
+  if (config.sentinels) {
+    config.sentinels.max = ensureNonNegative(config.sentinels.max, 8);
+    config.sentinels.spawnIntervalMs = ensureNonNegative(config.sentinels.spawnIntervalMs, 900);
+    if (config.sentinels.scaleRange) {
+      config.sentinels.scaleRange.min = ensurePositive(config.sentinels.scaleRange.min, 2);
+      config.sentinels.scaleRange.extra = ensureNonNegative(config.sentinels.scaleRange.extra, 2);
+    }
+    if (config.sentinels.speedThresholds) {
+      config.sentinels.speedThresholds.fast = clampNumber(
+        config.sentinels.speedThresholds.fast,
+        0,
+        1,
+        0.6
+      );
+      config.sentinels.speedThresholds.mid = clampNumber(
+        config.sentinels.speedThresholds.mid,
+        0,
+        1,
+        0.85
+      );
+    }
+  }
+  if (config.rabbit) {
+    config.rabbit.speed = ensurePositive(config.rabbit.speed, 1.2);
+    config.rabbit.scale = ensurePositive(config.rabbit.scale, 2.2);
+    config.rabbit.hopAmplitude = ensureNonNegative(config.rabbit.hopAmplitude, 10);
+    config.rabbit.phaseStep = ensureNonNegative(config.rabbit.phaseStep, 0.12);
+    config.rabbit.yOffset = ensureNonNegative(config.rabbit.yOffset, 40);
+  }
+  if (config.stats) {
+    config.stats.fontSize = ensurePositive(config.stats.fontSize, 12);
+  }
+  if (config.overlays) {
+    config.overlays.overlayOpacity = clampNumber(config.overlays.overlayOpacity, 0, 1, 1);
+    config.overlays.glitchOpacity = clampNumber(config.overlays.glitchOpacity, 0, 1, 0.4);
+  }
+  if (config.interactions) {
+    config.interactions.enabled = Boolean(config.interactions.enabled);
+  }
+}
+
+export function sanitizeStrings(strings) {
+  if (!strings || typeof strings !== "object") return;
+  const toString = (value, fallback) =>
+    typeof value === "string" ? value : fallback;
+  strings.title = toString(strings.title, "");
+  strings.bgName = toString(strings.bgName, "");
+  strings.badge = toString(strings.badge, "");
+  strings.statsKilledLabel = toString(strings.statsKilledLabel, "");
+  strings.statsEscapedLabel = toString(strings.statsEscapedLabel, "");
+}
+
 // Convert HSV values from the wheel into a hex color string.
 export function hsvToHex(h, s, v) {
   const c = v * s;

@@ -1,4 +1,10 @@
-import { fetchJson, mergeDeep, readQueryOverrides } from "./utils.js";
+import {
+  fetchJson,
+  mergeDeep,
+  readQueryOverrides,
+  sanitizeConfig,
+  sanitizeStrings
+} from "./utils.js";
 import { initThemeState, applyThemeColor, setThemeCssVars } from "./theme.js";
 import { createTitleController } from "./title.js";
 import { setupMenu } from "./menu.js";
@@ -6,6 +12,10 @@ import { createScene } from "./scene.js";
 
 (async () => {
   "use strict";
+
+  if (typeof performance !== "undefined" && performance.mark) {
+    performance.mark("app:init-start");
+  }
 
   const defaultConfig = {
     rabbitUrl: "https://github.com/angelcamach0",
@@ -92,6 +102,8 @@ import { createScene } from "./scene.js";
   const queryOverrides = readQueryOverrides();
   const config = mergeDeep({}, defaultConfig, remoteConfig, queryOverrides.config);
   const strings = mergeDeep({}, defaultStrings, remoteStrings, queryOverrides.strings);
+  sanitizeConfig(config);
+  sanitizeStrings(strings);
 
   const elements = {
     bgText: document.querySelector(".bg-text"),
@@ -103,6 +115,12 @@ import { createScene } from "./scene.js";
     sidePanelClose: document.querySelector(".side-panel-close"),
     sidePanelApply: document.querySelector(".side-panel-apply")
   };
+  if (!elements.bgName || !elements.bgText) {
+    console.warn("Background title elements not found; name typing may be skipped.");
+  }
+  if (!elements.sidePanel || !elements.sideToggle) {
+    console.warn("Menu elements missing; slide-out controls may be unavailable.");
+  }
 
   const contexts = {
     canvas: document.getElementById("matrix"),
@@ -198,4 +216,11 @@ import { createScene } from "./scene.js";
   }
   titleController.typeBgText();
   titleController.startTitleCursor();
+
+  if (typeof performance !== "undefined" && performance.mark) {
+    performance.mark("app:init-end");
+    if (performance.measure) {
+      performance.measure("app:init", "app:init-start", "app:init-end");
+    }
+  }
 })();
