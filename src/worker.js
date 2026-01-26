@@ -436,6 +436,12 @@ export default {
         justify-content: space-between;
         gap: 12px;
       }
+      /* Two-column layout keeps toggle options compact. */
+      .toggle-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 14px;
+      }
       .toggle-button {
         border: 1px solid rgba(0, 255, 122, 0.35);
         background: rgba(0, 255, 122, 0.08);
@@ -511,22 +517,24 @@ export default {
             </div>
           </div>
         </div>
-        <label class="side-panel-toggle">
-          <span>Matrix rain</span>
-          <button class="toggle-button" type="button" data-toggle="features.matrix" aria-pressed="true">On</button>
-        </label>
-        <label class="side-panel-toggle">
-          <span>Sentinels</span>
-          <button class="toggle-button" type="button" data-toggle="features.sentinels" aria-pressed="true">On</button>
-        </label>
-        <label class="side-panel-toggle">
-          <span>Mouse trail</span>
-          <button class="toggle-button" type="button" data-toggle="features.trail" aria-pressed="true">On</button>
-        </label>
-        <label class="side-panel-toggle">
-          <span>Click bursts</span>
-          <button class="toggle-button" type="button" data-toggle="features.bursts" aria-pressed="true">On</button>
-        </label>
+        <div class="toggle-grid">
+          <label class="side-panel-toggle">
+            <span>Matrix rain</span>
+            <button class="toggle-button" type="button" data-toggle="features.matrix" aria-pressed="true">On</button>
+          </label>
+          <label class="side-panel-toggle">
+            <span>Sentinels</span>
+            <button class="toggle-button" type="button" data-toggle="features.sentinels" aria-pressed="true">On</button>
+          </label>
+          <label class="side-panel-toggle">
+            <span>Mouse trail</span>
+            <button class="toggle-button" type="button" data-toggle="features.trail" aria-pressed="true">On</button>
+          </label>
+          <label class="side-panel-toggle">
+            <span>Click bursts</span>
+            <button class="toggle-button" type="button" data-toggle="features.bursts" aria-pressed="true">On</button>
+          </label>
+        </div>
       </div>
     </aside>
     <div class="badge">cloudflare worker</div>
