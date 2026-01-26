@@ -92,8 +92,9 @@ export default {
       };
       // Default text labels for the UI.
       // Override with the APP_STRINGS environment variable (JSON string).
+      // Default labels used for the tab title, background name, and UI text.
       const defaultStrings = {
-        title: "Matrix Rain",
+        title: "angelcamach0",
         bgName: "angelcamach0",
         badge: "cloudflare worker",
         statsKilledLabel: "Sentinels killed",
@@ -404,8 +405,7 @@ export default {
       </div>
       <div class="side-panel-body">
         <label class="side-panel-field">
-          <span>Username</span>
-          <input type="text" name="title" placeholder="username" />
+          <input type="text" name="title" placeholder="Username" />
         </label>
         <label class="side-panel-toggle">
           <span>Matrix rain</span>
@@ -493,7 +493,7 @@ export default {
           }
         };
         const defaultStrings = {
-          title: "Matrix Rain",
+          title: "angelcamach0",
           bgName: "angelcamach0",
           badge: "cloudflare worker",
           statsKilledLabel: "Sentinels killed",
@@ -547,13 +547,16 @@ export default {
         let escaped = 0;
         let shakeTimer = 0;
         let glitchTimer = 0;
+        let titleCursorTimer = 0;
+        let titleCursorVisible = true;
         const mouse = { x: 0, y: 0, active: false };
 
         const toNumber = (value, fallback) => (Number.isFinite(value) ? value : fallback);
         const hitTest = (x, y, rect) =>
           x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
 
-        document.title = strings.title || document.title;
+        // Keep the tab title in sync with strings and add a blinking cursor.
+        updateDocumentTitle(true);
         document.documentElement.style.setProperty("--bg", config.palette.bg);
         document.documentElement.style.setProperty("--green", config.palette.green);
         document.documentElement.style.setProperty("--green-dim", config.palette.greenDim);
@@ -634,9 +637,9 @@ export default {
             if (sidePanelApply) {
               // Apply the menu values to the running scene.
               sidePanelApply.addEventListener("click", () => {
-                if (titleInput) {
-                  strings.title = titleInput.value.trim() || strings.title;
-                }
+              if (titleInput) {
+                strings.title = titleInput.value.trim() || strings.title;
+              }
                 toggleButtons.forEach((button) => {
                   const key = button.getAttribute("data-toggle");
                   if (!key) return;
@@ -653,10 +656,10 @@ export default {
                   cursor[parts[parts.length - 1]] = isOn;
                 });
 
-                document.title = strings.title || document.title;
-                if (!config.features.sentinels && sentinelsCtx) {
-                  sentinelsCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-                }
+              updateDocumentTitle(true);
+              if (!config.features.sentinels && sentinelsCtx) {
+                sentinelsCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+              }
               });
             }
 
@@ -674,6 +677,22 @@ export default {
           clearTimeout(glitchTimer);
           shakeTimer = setTimeout(() => document.body.classList.remove("shake"), 420);
           glitchTimer = setTimeout(() => document.body.classList.remove("glitch"), 520);
+        }
+
+        function updateDocumentTitle(reset) {
+          const baseTitle = strings.title || document.title;
+          if (reset) {
+            titleCursorVisible = true;
+          }
+          document.title = baseTitle + (titleCursorVisible ? " █" : "");
+        }
+
+        function startTitleCursor() {
+          clearInterval(titleCursorTimer);
+          titleCursorTimer = setInterval(() => {
+            titleCursorVisible = !titleCursorVisible;
+            updateDocumentTitle(false);
+          }, 750);
         }
 
         // Sync all canvases with the viewport size and device pixel ratio.
@@ -1050,6 +1069,7 @@ export default {
         try {
           resize();
           typeBgText();
+          startTitleCursor();
           draw();
         } catch (err) {
           console.error("Animation loop failed to start.", err);
