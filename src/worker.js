@@ -434,7 +434,7 @@ export default {
           <input type="text" name="title" placeholder="Username" />
         </label>
         <div class="side-panel-section" data-section="colors">
-          <button class="side-panel-section-toggle" type="button">Colors</button>
+          <button class="side-panel-section-toggle" type="button">Theme</button>
           <div class="side-panel-section-body">
             <span>Theme colors (coming next)</span>
           </div>
