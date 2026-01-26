@@ -137,6 +137,11 @@ export default {
         --bg: #050a08;
         --green: #00ff7a;
         --green-dim: #0b3d2a;
+        --green-rgb: 0, 255, 122;
+        /* Theme-tinted UI fills for menu controls. */
+        --green-soft: rgba(0, 255, 122, 0.12);
+        --green-soft-strong: rgba(0, 255, 122, 0.2);
+        --green-soft-weak: rgba(0, 255, 122, 0.08);
         --bg-gradient: radial-gradient(1200px 800px at 70% 20%, #092015 0%, var(--bg) 60%);
         --overlay-opacity: 1;
         --glitch-opacity: 0.4;
@@ -206,9 +211,9 @@ export default {
         font-size: var(--bg-font-size, 200px);
         letter-spacing: clamp(0.04em, 0.5vw, 0.1em);
         white-space: nowrap;
-        color: rgba(0, 255, 122, 0.08);
+        color: rgba(var(--green-rgb), 0.08);
         text-transform: lowercase;
-        text-shadow: 0 0 30px rgba(0, 255, 122, 0.12);
+        text-shadow: 0 0 30px rgba(var(--green-rgb), 0.12);
         pointer-events: none;
         z-index: 0;
       }
@@ -218,7 +223,7 @@ export default {
       }
       .bg-cursor {
         margin-left: 0.2em;
-        color: rgba(0, 255, 122, 0.12);
+        color: rgba(var(--green-rgb), 0.12);
         animation: cursor-blink 1.2s steps(1, end) infinite;
       }
       @keyframes cursor-blink {
@@ -266,7 +271,7 @@ export default {
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         font-size: 12px;
         color: var(--green);
-        text-shadow: 0 0 8px rgba(0,255,122,0.5);
+        text-shadow: 0 0 8px rgba(var(--green-rgb), 0.5);
         opacity: 0.7;
       }
       /* Side handle to open the sliding customization panel. */
@@ -276,7 +281,7 @@ export default {
         top: 50%;
         transform: translateY(-50%);
         z-index: 7;
-        border: 1px solid rgba(0, 255, 122, 0.35);
+        border: 1px solid rgba(var(--green-rgb), 0.35);
         border-left: none;
         background: rgba(5, 10, 8, 0.65);
         color: var(--green);
@@ -297,7 +302,7 @@ export default {
         width: min(320px, 80vw);
         height: min(360px, 70vh);
         background: rgba(2, 8, 6, 0.88);
-        border: 1px solid rgba(0, 255, 122, 0.2);
+        border: 1px solid rgba(var(--green-rgb), 0.2);
         border-left: none;
         transition: transform 0.3s ease;
         z-index: 8;
@@ -315,7 +320,7 @@ export default {
         align-items: center;
         justify-content: flex-end;
         padding: 10px 12px;
-        border-bottom: 1px solid rgba(0, 255, 122, 0.1);
+        border-bottom: 1px solid rgba(var(--green-rgb), 0.1);
       }
       /* Placeholder layout for future customization controls. */
       /* Scrollable body so expanded sections don't push options off-screen. */
@@ -330,9 +335,10 @@ export default {
         overscroll-behavior: contain;
       }
       /* Expandable section for grouping color controls. */
+      /* Theme section container uses a softer fill for contrast. */
       .side-panel-section {
-        border: 1px solid rgba(0, 255, 122, 0.15);
-        background: rgba(2, 8, 6, 0.6);
+        border: 1px solid rgba(var(--green-rgb), 0.15);
+        background: var(--green-soft-weak);
       }
       .side-panel-section-toggle {
         width: 100%;
@@ -367,6 +373,7 @@ export default {
         border-radius: 50%;
         margin: 0 auto;
         background:
+          radial-gradient(circle at center, #ffffff 0%, rgba(255, 255, 255, 0) 65%),
           conic-gradient(
             #ff004c,
             #ff8a00,
@@ -379,14 +386,6 @@ export default {
             #ff004c
           );
         cursor: crosshair;
-      }
-      .theme-wheel::after {
-        content: "";
-        position: absolute;
-        inset: 20%;
-        border-radius: 50%;
-        background: rgba(2, 8, 6, 0.92);
-        box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.6);
       }
       .theme-wheel-indicator {
         position: absolute;
@@ -412,7 +411,7 @@ export default {
       .theme-swatch {
         width: 36px;
         height: 18px;
-        border: 1px solid rgba(0, 255, 122, 0.25);
+        border: 1px solid rgba(var(--green-rgb), 0.25);
         background: #00ff7a;
       }
       /* Field block for text-based settings. */
@@ -424,7 +423,7 @@ export default {
         width: 100%;
         padding: 8px 10px;
         background: rgba(5, 10, 8, 0.85);
-        border: 1px solid rgba(0, 255, 122, 0.25);
+        border: 1px solid rgba(var(--green-rgb), 0.25);
         color: rgba(230, 255, 240, 0.95);
         font-family: inherit;
         font-size: 12px;
@@ -442,9 +441,10 @@ export default {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px 14px;
       }
+      /* Toggle buttons use theme-tinted fills for legibility. */
       .toggle-button {
-        border: 1px solid rgba(0, 255, 122, 0.35);
-        background: rgba(0, 255, 122, 0.08);
+        border: 1px solid rgba(var(--green-rgb), 0.35);
+        background: var(--green-soft-weak);
         color: var(--green);
         font-family: inherit;
         font-size: 11px;
@@ -457,9 +457,10 @@ export default {
         opacity: 0.55;
       }
       /* Close button that slides the panel back out. */
+      /* Close button keeps the theme fill while staying subtle. */
       .side-panel-close {
-        border: 1px solid rgba(0, 255, 122, 0.35);
-        background: rgba(0, 255, 122, 0.08);
+        border: 1px solid rgba(var(--green-rgb), 0.35);
+        background: var(--green-soft-weak);
         color: var(--green);
         font-family: "Courier New", monospace;
         font-size: 12px;
@@ -467,9 +468,10 @@ export default {
         padding: 6px 10px;
         cursor: pointer;
       }
+      /* Apply button gets a stronger theme fill to stand out. */
       .side-panel-apply {
-        border: 1px solid rgba(0, 255, 122, 0.35);
-        background: rgba(0, 255, 122, 0.18);
+        border: 1px solid rgba(var(--green-rgb), 0.35);
+        background: var(--green-soft-strong);
         color: var(--green);
         font-family: "Courier New", monospace;
         font-size: 12px;
@@ -675,6 +677,7 @@ export default {
         let themeIndicator = null;
         let themeSwatch = null;
         let themeColor = "#00ff7a";
+        let themeRgb = { r: 0, g: 255, b: 122 };
         const mouse = { x: 0, y: 0, active: false };
 
         const toNumber = (value, fallback) => (Number.isFinite(value) ? value : fallback);
@@ -684,8 +687,7 @@ export default {
         // Keep the tab title in sync with strings and add a blinking cursor.
         updateDocumentTitle(true);
         document.documentElement.style.setProperty("--bg", config.palette.bg);
-        document.documentElement.style.setProperty("--green", config.palette.green);
-        document.documentElement.style.setProperty("--green-dim", config.palette.greenDim);
+        setThemeCssVars(config.palette.green, config.palette.greenDim);
         if (config.palette.bgGradient) {
           document.documentElement.style.setProperty("--bg-gradient", config.palette.bgGradient);
         }
@@ -827,6 +829,8 @@ export default {
                 });
 
                 updateDocumentTitle(true);
+                // Apply the selected theme color across core accent styles.
+                applyThemeColor(themeColor);
                 // Clear any existing visuals when related features are disabled.
                 if (!config.features.trail) {
                   trail.length = 0;
@@ -850,6 +854,47 @@ export default {
           if (themeSwatch) {
             themeSwatch.style.background = color;
           }
+        }
+
+        // Update CSS theme variables, including softer fills for menu UI.
+        function setThemeCssVars(color, dimColor) {
+          document.documentElement.style.setProperty("--green", color);
+          document.documentElement.style.setProperty("--green-dim", dimColor);
+          const rgb = hexToRgb(color);
+          if (rgb) {
+            themeRgb = rgb;
+            document.documentElement.style.setProperty(
+              "--green-rgb",
+              rgb.r + ", " + rgb.g + ", " + rgb.b
+            );
+            // Theme-tinted fills for menu backgrounds and controls.
+            document.documentElement.style.setProperty(
+              "--green-soft",
+              "rgba(" + rgb.r + ", " + rgb.g + ", " + rgb.b + ", 0.12)"
+            );
+            document.documentElement.style.setProperty(
+              "--green-soft-weak",
+              "rgba(" + rgb.r + ", " + rgb.g + ", " + rgb.b + ", 0.08)"
+            );
+            document.documentElement.style.setProperty(
+              "--green-soft-strong",
+              "rgba(" + rgb.r + ", " + rgb.g + ", " + rgb.b + ", 0.2)"
+            );
+          }
+        }
+
+        function applyThemeColor(color) {
+          if (!color) return;
+          const hsv = hexToHsv(color);
+          const dimColor = hsvToHex(hsv.h, Math.min(1, hsv.s * 0.8), Math.max(0, hsv.v * 0.35));
+          config.palette.green = color;
+          config.palette.greenDim = dimColor;
+          setThemeCssVars(color, dimColor);
+          if (themeRgb) {
+            config.stats.color = "rgba(" + themeRgb.r + ", " + themeRgb.g + ", " + themeRgb.b + ", 0.7)";
+          }
+          updateThemeSwatch(color);
+          updateThemeIndicator(color);
         }
 
         function updateThemeIndicator(color) {
@@ -1050,6 +1095,10 @@ export default {
           return "#" + toHex(r) + toHex(g) + toHex(b);
         }
 
+        function themeRgba(alpha) {
+          return "rgba(" + themeRgb.r + ", " + themeRgb.g + ", " + themeRgb.b + ", " + alpha + ")";
+        }
+
         // Cursor trail letters that fade out over time.
         function drawTrail() {
           for (let i = trail.length - 1; i >= 0; i--) {
@@ -1059,7 +1108,7 @@ export default {
               trail.splice(i, 1);
               continue;
             }
-          ctx.fillStyle = "rgba(0, 255, 122, " + p.life.toFixed(3) + ")";
+          ctx.fillStyle = themeRgba(p.life);
           ctx.font = config.trail.fontSize + "px monospace";
           ctx.fillText(p.char, p.x, p.y);
         }
@@ -1077,7 +1126,7 @@ export default {
             p.vy += 0.06;
             p.x += p.vx;
             p.y += p.vy;
-          ctx.fillStyle = "rgba(0, 255, 122, " + p.life.toFixed(3) + ")";
+          ctx.fillStyle = themeRgba(p.life);
           ctx.font = config.bursts.fontSize + "px monospace";
           ctx.fillText(p.char, p.x, p.y);
         }
@@ -1140,8 +1189,8 @@ export default {
               "00111100",
               "00011000"
             ];
-            sentinelsCtx.fillStyle = "rgba(0, 255, 122, 0.18)";
-            sentinelsCtx.shadowColor = "rgba(0, 255, 122, 0.5)";
+            sentinelsCtx.fillStyle = themeRgba(0.18);
+            sentinelsCtx.shadowColor = themeRgba(0.5);
             sentinelsCtx.shadowBlur = 10;
             for (let y = 0; y < pattern.length; y++) {
               for (let x = 0; x < pattern[y].length; x++) {
@@ -1152,7 +1201,7 @@ export default {
             }
             // Tentacles trailing behind the sentinel.
             sentinelsCtx.shadowBlur = 6;
-            sentinelsCtx.strokeStyle = "rgba(0, 255, 122, 0.22)";
+            sentinelsCtx.strokeStyle = themeRgba(0.22);
             sentinelsCtx.lineWidth = Math.max(1, unit / 2);
             const tailDir = s.vx > 0 ? -1 : 1;
             for (let t = 0; t < 5; t++) {
@@ -1176,7 +1225,7 @@ export default {
               const barY = py - barH - 3;
               sentinelsCtx.fillStyle = "rgba(0, 0, 0, 0.5)";
               sentinelsCtx.fillRect(barX, barY, barW, barH);
-              sentinelsCtx.fillStyle = "rgba(0, 255, 122, 0.7)";
+              sentinelsCtx.fillStyle = themeRgba(0.7);
               sentinelsCtx.fillRect(barX, barY, barW * (s.hp / s.maxHp), barH);
             }
             sentinelsCtx.shadowBlur = 0;
