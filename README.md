@@ -159,7 +159,7 @@ Notes:
 
 The diagram below shows how the Worker routes assets and how the client modules depend on each other. Use it as a quick map when adding new features or moving logic between modules.
 
-![Architecture diagram](docs/architecture.svg)
+<img src="docs/architecture.svg" alt="Architecture diagram" />
 
 ### Adding or removing visual features
 
