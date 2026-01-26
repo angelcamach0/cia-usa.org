@@ -22,6 +22,17 @@ npm run deploy
 - The Worker returns one HTML document with embedded CSS and JavaScript.
 - Three canvas layers compose the scene: matrix rain, sentinels, and the rabbit.
 - Pointer events add a trailing glyph effect and trigger click bursts.
+- A slide-out menu lets users toggle features and theme colors live.
+
+## What the site includes
+
+- Matrix rain background with configurable density, font size, and fade.
+- Sentinel sprites with spawn logic, wobble, and HP bars.
+- Rabbit sprite with a clickable link target.
+- Mouse trail and click-burst particle effects.
+- Background name typing effect with looping delete/retype.
+- Stats HUD (killed/escaped) and glitch screen feedback.
+- Slide-out control menu with live toggles and a theme color wheel.
 
 ## Customize
 
@@ -112,6 +123,60 @@ Supported params:
 - `statsFont`, `statsColor`
 - `interactions` (`1` or `0`)
 - Feature toggles (`1` or `0`): `matrix`, `sentinels`, `rabbit`, `trail`, `bursts`, `bgText`, `badge`, `stats`, `overlays`, `glitch`
+
+## Menu controls (live)
+
+The slide-out menu updates the live scene without a page reload. Current controls:
+
+- Username (updates the tab title and background name)
+- Feature toggles: matrix rain, sentinels, mouse trail, click bursts
+- Theme section: inline color wheel + Implement button to apply the selected color
+
+## Project structure & extension guide
+
+This repo is intentionally a single-file Worker so it can be copied and deployed easily.
+
+- `src/worker.js` contains:
+  - Worker handler (serves `/`, `/config.json`, `/strings.json`, `/theme.css`)
+  - HTML markup for the canvases and menu
+  - CSS for layout/theme tokens and menu styling
+  - Client JS for animation, menu behavior, and theme updates
+
+Key locations (search within `src/worker.js`):
+- Defaults: `defaultConfig` and `defaultStrings` near the top of the inline `<script>`.
+- Canvas setup: look for `const canvas = document.getElementById("matrix")`.
+- Main render loop: `function draw()` and `requestAnimationFrame(draw)`.
+- Menu wiring: `sidePanelApply.addEventListener("click", ...)`.
+- Theme helpers: `applyThemeColor`, `setThemeCssVars`, `themeRgba`.
+
+### Adding or removing visual features
+
+- Feature flags live in `config.features`.
+- Draw calls are gated in the main loop:
+  - `if (config.features.matrix) { ... }`
+  - `if (config.features.sentinels) { ... }`
+  - `if (config.features.trail) { ... }`
+  - `if (config.features.bursts) { ... }`
+- To add a new effect:
+  1. Add a new `features.<name>` flag and defaults in `defaultConfig`.
+  2. Add a menu toggle button with `data-toggle="features.<name>"`.
+  3. Gate the draw/update logic in the `draw()` loop or event handlers.
+
+### Updating theme behavior
+
+- Theme colors flow from `config.palette` into CSS variables.
+- `applyThemeColor()` updates:
+  - CSS vars (`--green`, `--green-dim`, `--green-rgb`, soft fills)
+  - Canvas colors via `themeRgba()`
+  - HUD color via `config.stats.color`
+- To customize additional elements, use `themeRgba()` or `var(--green-rgb)` in CSS.
+
+### Rebranding or reusing the template
+
+- Update `strings.json` (or `APP_STRINGS`) for text labels.
+- Update `config.json` (or `APP_CONFIG`) for visuals and behavior.
+- Replace `rabbitUrl` with your own link.
+- Deploy with `npm run deploy` after edits.
 
 ## Reliability and safety notes
 
