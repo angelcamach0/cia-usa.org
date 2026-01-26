@@ -8,7 +8,9 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 import htmlTemplate from "./index.html";
-import appCss from "./app.css.txt";
+import baseCss from "./styles/base.css.txt";
+import effectsCss from "./styles/effects.css.txt";
+import menuCss from "./styles/menu.css.txt";
 import appJs from "./app.js.txt";
 
 
@@ -122,8 +124,18 @@ export default {
           headers: { "content-type": "application/json; charset=utf-8" }
         });
       }
-      if (url.pathname === "/app.css") {
-        return new Response(resolveText(appCss), {
+      if (url.pathname === "/styles/base.css") {
+        return new Response(resolveText(baseCss), {
+          headers: { "content-type": "text/css; charset=utf-8" }
+        });
+      }
+      if (url.pathname === "/styles/effects.css") {
+        return new Response(resolveText(effectsCss), {
+          headers: { "content-type": "text/css; charset=utf-8" }
+        });
+      }
+      if (url.pathname === "/styles/menu.css") {
+        return new Response(resolveText(menuCss), {
           headers: { "content-type": "text/css; charset=utf-8" }
         });
       }

@@ -1,0 +1,229 @@
+/* Side handle to open the sliding customization panel. */
+.side-toggle {
+  position: fixed;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 7;
+  border: 1px solid rgba(var(--green-rgb), 0.35);
+  border-left: none;
+  background: rgba(5, 10, 8, 0.65);
+  color: var(--green);
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  padding: 10px 12px;
+  text-transform: uppercase;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+
+/* Left-side sliding panel container (content comes later). */
+.side-panel {
+  position: fixed;
+  left: 0;
+  top: 50%;
+  transform: translate(-100%, -50%);
+  width: min(320px, 80vw);
+  height: min(360px, 70vh);
+  background: rgba(2, 8, 6, 0.88);
+  border: 1px solid rgba(var(--green-rgb), 0.2);
+  border-left: none;
+  transition: transform 0.3s ease;
+  z-index: 8;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+/* Shift the panel into view when toggled. */
+body.menu-open .side-panel {
+  transform: translate(0, -50%);
+}
+
+/* Header row inside the panel for the close control. */
+.side-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(var(--green-rgb), 0.1);
+}
+
+/* Placeholder layout for future customization controls. */
+/* Scrollable body so expanded sections don't push options off-screen. */
+.side-panel-body {
+  padding: 14px 16px;
+  display: grid;
+  gap: 12px;
+  color: rgba(230, 255, 240, 0.9);
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Expandable section for grouping color controls. */
+/* Theme section container uses a softer fill for contrast. */
+.side-panel-section {
+  border: 1px solid rgba(var(--green-rgb), 0.15);
+  background: var(--green-soft-weak);
+}
+
+.side-panel-section-toggle {
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: var(--green);
+  font-family: inherit;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.side-panel-section-body {
+  padding: 10px;
+  display: none;
+  gap: 8px;
+  color: rgba(230, 255, 240, 0.75);
+}
+
+.side-panel-section.is-open .side-panel-section-body {
+  display: grid;
+}
+
+/* Inline theme color wheel (no native popup). */
+.theme-picker {
+  display: grid;
+  gap: 10px;
+}
+
+.theme-wheel {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  margin: 0 auto;
+  background: radial-gradient(
+      circle at center,
+      #ffffff 0%,
+      rgba(255, 255, 255, 0) 65%
+    ),
+    conic-gradient(
+      #ff004c,
+      #ff8a00,
+      #ffe600,
+      #7bff00,
+      #00ffb3,
+      #00b6ff,
+      #5b5bff,
+      #c100ff,
+      #ff004c
+    );
+  cursor: crosshair;
+}
+
+.theme-wheel-indicator {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.theme-picker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.theme-picker-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(230, 255, 240, 0.7);
+}
+
+.theme-swatch {
+  width: 36px;
+  height: 18px;
+  border: 1px solid rgba(var(--green-rgb), 0.25);
+  background: #00ff7a;
+}
+
+/* Field block for text-based settings. */
+.side-panel-field {
+  display: grid;
+  gap: 6px;
+}
+
+.side-panel-field input[type="text"] {
+  width: 100%;
+  padding: 8px 10px;
+  background: rgba(5, 10, 8, 0.85);
+  border: 1px solid rgba(var(--green-rgb), 0.25);
+  color: rgba(230, 255, 240, 0.95);
+  font-family: inherit;
+  font-size: 12px;
+}
+
+/* Toggle rows for future feature flags. */
+.side-panel-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Two-column layout keeps toggle options compact. */
+.toggle-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+
+/* Toggle buttons use theme-tinted fills for legibility. */
+.toggle-button {
+  border: 1px solid rgba(var(--green-rgb), 0.35);
+  background: var(--green-soft-weak);
+  color: var(--green);
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.toggle-button[aria-pressed="false"] {
+  opacity: 0.55;
+}
+
+/* Close button keeps the theme fill while staying subtle. */
+.side-panel-close {
+  border: 1px solid rgba(var(--green-rgb), 0.35);
+  background: var(--green-soft-weak);
+  color: var(--green);
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+/* Apply button gets a stronger theme fill to stand out. */
+.side-panel-apply {
+  border: 1px solid rgba(var(--green-rgb), 0.35);
+  background: var(--green-soft-strong);
+  color: var(--green);
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  padding: 6px 10px;
+  cursor: pointer;
+}
