@@ -153,6 +153,7 @@ This repo is modular so each feature is easy to find and extend.
 
 Notes:
 - The JSON files are served directly, so they must remain valid JSON (no comments).
+- The `.txt` suffix is used for HTML/CSS/JS assets so Wrangler loads them as raw text. The Worker still serves them with proper `text/html`, `text/css`, and `text/javascript` headers.
 
 ### Adding or removing visual features
 
