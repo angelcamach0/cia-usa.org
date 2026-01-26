@@ -49,6 +49,7 @@ export default {
           columnWidth: 14,
           fontSize: 14,
           fadeAlpha: 0.08,
+          speed: 1,
           resetChance: 0.025
         },
         trail: {
@@ -268,6 +269,91 @@ export default {
         text-shadow: 0 0 8px rgba(0,255,122,0.5);
         opacity: 0.7;
       }
+      .panel-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 7;
+        border: 1px solid rgba(0, 255, 122, 0.35);
+        background: rgba(5, 10, 8, 0.65);
+        color: var(--green);
+        font-family: "Courier New", monospace;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        padding: 10px 12px;
+        text-transform: uppercase;
+        cursor: pointer;
+        backdrop-filter: blur(6px);
+      }
+      .config-panel {
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100%;
+        width: min(340px, 90vw);
+        background: rgba(2, 8, 6, 0.88);
+        border-left: 1px solid rgba(0, 255, 122, 0.2);
+        padding: 24px;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        z-index: 8;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        color: rgba(230, 255, 240, 0.9);
+        font-family: "Courier New", monospace;
+      }
+      body.panel-open .config-panel {
+        transform: translateX(0);
+      }
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .panel-close {
+        border: 1px solid rgba(0, 255, 122, 0.35);
+        background: transparent;
+        color: var(--green);
+        padding: 6px 10px;
+        cursor: pointer;
+      }
+      .panel-field {
+        display: grid;
+        gap: 6px;
+        font-size: 12px;
+      }
+      .panel-field input {
+        width: 100%;
+        padding: 8px 10px;
+        background: rgba(5, 10, 8, 0.85);
+        border: 1px solid rgba(0, 255, 122, 0.25);
+        color: rgba(230, 255, 240, 0.95);
+        font-family: inherit;
+        font-size: 12px;
+      }
+      .panel-field input[type="color"] {
+        padding: 0;
+        height: 34px;
+      }
+      .panel-actions {
+        margin-top: auto;
+        display: grid;
+        gap: 8px;
+      }
+      .panel-actions button {
+        border: 1px solid rgba(0, 255, 122, 0.35);
+        background: rgba(0, 255, 122, 0.08);
+        color: var(--green);
+        padding: 10px;
+        font-family: inherit;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+      }
     </style>
   </head>
     <body>
@@ -282,6 +368,57 @@ export default {
     </div>
     <div class="overlay"></div>
     <div class="glitch-layer"></div>
+    <!-- Slide-in config panel for live customization. -->
+    <button class="panel-toggle" type="button">Customize</button>
+    <aside class="config-panel" aria-hidden="true">
+      <div class="panel-header">
+        <span>Live settings</span>
+        <button class="panel-close" type="button">Close</button>
+      </div>
+      <label class="panel-field">
+        <span>Site title</span>
+        <input type="text" name="title" placeholder="Matrix Rain" />
+      </label>
+      <label class="panel-field">
+        <span>Background name</span>
+        <input type="text" name="bgName" placeholder="angelcamach0" />
+      </label>
+      <label class="panel-field">
+        <span>Badge text</span>
+        <input type="text" name="badge" placeholder="cloudflare worker" />
+      </label>
+      <label class="panel-field">
+        <span>Rabbit link URL</span>
+        <input type="text" name="rabbitUrl" placeholder="https://..." />
+      </label>
+      <label class="panel-field">
+        <span>Background color</span>
+        <input type="color" name="bg" />
+      </label>
+      <label class="panel-field">
+        <span>Matrix green</span>
+        <input type="color" name="green" />
+      </label>
+      <label class="panel-field">
+        <span>Matrix font size</span>
+        <input type="number" name="matrixFont" min="8" max="40" step="1" />
+      </label>
+      <label class="panel-field">
+        <span>Column width</span>
+        <input type="number" name="columnWidth" min="8" max="30" step="1" />
+      </label>
+      <label class="panel-field">
+        <span>Matrix speed</span>
+        <input type="number" name="matrixSpeed" min="0.2" max="3" step="0.1" />
+      </label>
+      <label class="panel-field">
+        <span>Trail font size</span>
+        <input type="number" name="trailFont" min="8" max="30" step="1" />
+      </label>
+      <div class="panel-actions">
+        <button type="button" data-action="preview">Preview</button>
+      </div>
+    </aside>
     <div class="badge">cloudflare worker</div>
     <script>
       (async () => {
@@ -316,6 +453,7 @@ export default {
             columnWidth: 14,
             fontSize: 14,
             fadeAlpha: 0.08,
+            speed: 1,
             resetChance: 0.025
           },
           trail: {
@@ -379,6 +517,9 @@ export default {
         const bgTextInner = document.querySelector(".bg-text-inner");
         const bgName = document.querySelector(".bg-name");
         const badge = document.querySelector(".badge");
+        const panelToggle = document.querySelector(".panel-toggle");
+        const configPanel = document.querySelector(".config-panel");
+        const panelClose = document.querySelector(".panel-close");
         const sentinelsCanvas = document.getElementById("sentinels");
         const sentinelsCtx = sentinelsCanvas && sentinelsCanvas.getContext ? sentinelsCanvas.getContext("2d") : null;
         const rabbitCanvas = document.getElementById("rabbit");
@@ -408,34 +549,163 @@ export default {
         let escaped = 0;
         let shakeTimer = 0;
         let glitchTimer = 0;
+        let bgTypeToken = 0;
         const mouse = { x: 0, y: 0, active: false };
 
         const toNumber = (value, fallback) => (Number.isFinite(value) ? value : fallback);
         const hitTest = (x, y, rect) =>
           x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
 
-        document.title = strings.title || document.title;
-        document.documentElement.style.setProperty("--bg", config.palette.bg);
-        document.documentElement.style.setProperty("--green", config.palette.green);
-        document.documentElement.style.setProperty("--green-dim", config.palette.greenDim);
-        if (config.palette.bgGradient) {
-          document.documentElement.style.setProperty("--bg-gradient", config.palette.bgGradient);
+        applyThemeFromConfig();
+        applyStringsToDom();
+        syncPanelInputs();
+        updatePanelVisibility();
+
+        function applyThemeFromConfig() {
+          document.documentElement.style.setProperty("--bg", config.palette.bg);
+          document.documentElement.style.setProperty("--green", config.palette.green);
+          document.documentElement.style.setProperty("--green-dim", config.palette.greenDim);
+          if (config.palette.bgGradient) {
+            document.documentElement.style.setProperty("--bg-gradient", config.palette.bgGradient);
+          }
+          const overlayOpacity = config.features.overlays ? config.overlays.overlayOpacity : 0;
+          const glitchOpacity = config.features.glitch ? config.overlays.glitchOpacity : 0;
+          document.documentElement.style.setProperty("--overlay-opacity", overlayOpacity);
+          document.documentElement.style.setProperty("--glitch-opacity", glitchOpacity);
         }
-        const overlayOpacity = config.features.overlays ? config.overlays.overlayOpacity : 0;
-        const glitchOpacity = config.features.glitch ? config.overlays.glitchOpacity : 0;
-        document.documentElement.style.setProperty("--overlay-opacity", overlayOpacity);
-        document.documentElement.style.setProperty("--glitch-opacity", glitchOpacity);
-        if (bgName) {
-          bgName.setAttribute("data-text", strings.bgName);
+
+        function applyStringsToDom() {
+          document.title = strings.title || document.title;
+          if (bgName) {
+            bgName.setAttribute("data-text", strings.bgName);
+          }
+          if (badge) {
+            badge.textContent = strings.badge;
+          }
+          if (bgText && !config.features.bgText) {
+            bgText.style.display = "none";
+          } else if (bgText) {
+            bgText.style.display = "";
+          }
+          if (badge && !config.features.badge) {
+            badge.style.display = "none";
+          } else if (badge) {
+            badge.style.display = "";
+          }
         }
-        if (badge) {
-          badge.textContent = strings.badge;
+
+        function syncPanelInputs() {
+          if (!configPanel) return;
+          const setVal = (name, value) => {
+            const input = configPanel.querySelector("input[name=\"" + name + "\"]");
+            if (input && value !== undefined && value !== null) {
+              input.value = value;
+            }
+          };
+          setVal("title", strings.title);
+          setVal("bgName", strings.bgName);
+          setVal("badge", strings.badge);
+          setVal("rabbitUrl", config.rabbitUrl);
+          setVal("bg", config.palette.bg);
+          setVal("green", config.palette.green);
+          setVal("matrixFont", config.matrix.fontSize);
+          setVal("columnWidth", config.matrix.columnWidth);
+          setVal("matrixSpeed", config.matrix.speed);
+          setVal("trailFont", config.trail.fontSize);
         }
-        if (bgText && !config.features.bgText) {
-          bgText.style.display = "none";
+
+        function updatePanelVisibility() {
+          if (!configPanel) return;
+          configPanel.setAttribute("aria-hidden", document.body.classList.contains("panel-open") ? "false" : "true");
         }
-        if (badge && !config.features.badge) {
-          badge.style.display = "none";
+
+        // Apply user-entered overrides without reloading the page.
+        function applyOverridesFromPanel() {
+          if (!configPanel) return;
+          const readVal = (name) => {
+            const input = configPanel.querySelector("input[name=\"" + name + "\"]");
+            return input ? input.value.trim() : "";
+          };
+          const toFloatInput = (value) => {
+            const parsed = Number.parseFloat(value);
+            return Number.isFinite(parsed) ? parsed : undefined;
+          };
+          const toIntInput = (value) => {
+            const parsed = Number.parseInt(value, 10);
+            return Number.isFinite(parsed) ? parsed : undefined;
+          };
+
+          const overrides = {
+            config: {
+              palette: {},
+              matrix: {},
+              trail: {}
+            },
+            strings: {}
+          };
+
+          const nextTitle = readVal("title");
+          const nextBgName = readVal("bgName");
+          const nextBadge = readVal("badge");
+          const nextRabbitUrl = readVal("rabbitUrl");
+          const nextBg = readVal("bg");
+          const nextGreen = readVal("green");
+          const nextMatrixFont = toIntInput(readVal("matrixFont"));
+          const nextColumnWidth = toIntInput(readVal("columnWidth"));
+          const nextMatrixSpeed = toFloatInput(readVal("matrixSpeed"));
+          const nextTrailFont = toIntInput(readVal("trailFont"));
+
+          if (nextTitle) overrides.strings.title = nextTitle;
+          if (nextBgName) overrides.strings.bgName = nextBgName;
+          if (nextBadge) overrides.strings.badge = nextBadge;
+          if (nextRabbitUrl) overrides.config.rabbitUrl = nextRabbitUrl;
+          if (nextBg) overrides.config.palette.bg = nextBg;
+          if (nextGreen) overrides.config.palette.green = nextGreen;
+          if (nextMatrixFont !== undefined) overrides.config.matrix.fontSize = nextMatrixFont;
+          if (nextColumnWidth !== undefined) overrides.config.matrix.columnWidth = nextColumnWidth;
+          if (nextMatrixSpeed !== undefined) overrides.config.matrix.speed = nextMatrixSpeed;
+          if (nextTrailFont !== undefined) overrides.config.trail.fontSize = nextTrailFont;
+
+          const prevBgName = strings.bgName;
+          const prevColumnWidth = config.matrix.columnWidth;
+          mergeDeep(config, overrides.config);
+          mergeDeep(strings, overrides.strings);
+          applyThemeFromConfig();
+          applyStringsToDom();
+          if (strings.bgName !== prevBgName) {
+            typeBgText();
+          }
+          if (config.matrix.columnWidth !== prevColumnWidth) {
+            resize();
+          }
+          syncPanelInputs();
+        }
+
+        if (panelToggle) {
+          panelToggle.addEventListener("click", () => {
+            document.body.classList.add("panel-open");
+            updatePanelVisibility();
+          });
+        }
+        if (panelClose) {
+          panelClose.addEventListener("click", () => {
+            document.body.classList.remove("panel-open");
+            updatePanelVisibility();
+          });
+        }
+        if (configPanel) {
+          const previewButton = configPanel.querySelector("[data-action=\"preview\"]");
+          if (previewButton) {
+            previewButton.addEventListener("click", () => {
+              applyOverridesFromPanel();
+            });
+          }
+          configPanel.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              applyOverridesFromPanel();
+            }
+          });
         }
 
         // Flash/glitch feedback when a sentinel escapes off-screen.
@@ -484,10 +754,12 @@ export default {
         // Type-and-delete loop for the background name.
         function typeBgText() {
           if (!bgName) return;
+          const token = ++bgTypeToken;
           const target = bgName.getAttribute("data-text") || "";
           bgName.textContent = "";
           let index = 0;
           const typeNext = () => {
+            if (token !== bgTypeToken) return;
             if (index < target.length) {
               bgName.textContent += target[index];
               index += 1;
@@ -499,9 +771,11 @@ export default {
             setTimeout(jitterDelete, 3000 + Math.random() * 2000);
           };
           const jitterDelete = () => {
+            if (token !== bgTypeToken) return;
             const deleteCount = Math.max(1, Math.floor(Math.random() * target.length * 0.6));
             let remaining = deleteCount;
             const deleteNext = () => {
+              if (token !== bgTypeToken) return;
               if (remaining > 0) {
                 bgName.textContent = bgName.textContent.slice(0, -1);
                 remaining -= 1;
@@ -514,6 +788,7 @@ export default {
             deleteNext();
           };
           const retypeNext = () => {
+            if (token !== bgTypeToken) return;
             if (bgName.textContent.length < target.length) {
               const nextChar = target[bgName.textContent.length];
               bgName.textContent += nextChar;
@@ -723,7 +998,7 @@ export default {
               if (y > window.innerHeight && Math.random() < config.matrix.resetChance) {
                 drops[i] = 0;
               }
-              drops[i]++;
+              drops[i] += config.matrix.speed;
             }
           }
           if (config.features.sentinels) {
@@ -901,12 +1176,14 @@ export default {
           setIf("matrix.columnWidth", toInt(params.get("columnWidth"), undefined));
           setIf("matrix.fontSize", toInt(params.get("matrixFont"), undefined));
           setIf("matrix.fadeAlpha", toFloat(params.get("fade"), undefined));
+          setIf("matrix.speed", toFloat(params.get("matrixSpeed"), undefined));
           setIf("matrix.resetChance", toFloat(params.get("resetChance"), undefined));
           setIf("sentinels.max", toInt(params.get("sentinels"), undefined));
           setIf("sentinels.spawnIntervalMs", toInt(params.get("spawnMs"), undefined));
           setIf("rabbit.speed", toFloat(params.get("rabbitSpeed"), undefined));
           setIf("rabbit.scale", toFloat(params.get("rabbitScale"), undefined));
           setIf("rabbit.hopAmplitude", toFloat(params.get("hop"), undefined));
+          setIf("trail.fontSize", toInt(params.get("trailFont"), undefined));
           setIf("stats.fontSize", toInt(params.get("statsFont"), undefined));
           setIf("stats.color", params.get("statsColor"));
           const interactions = params.get("interactions");
